@@ -8,40 +8,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 let browser;
-let page;
 
 const LOGIN_URL = 'https://richmondlp.com/login';
 const ADMIN_URL = 'https://richmondlp.com/admin';
 const USER = 'mramirez@richmondelt.com';
 const PASS = 'Pass2025#';
 
-// 🚀 Inicializa navegador y hace login una vez
+// 🚀 Inicializa navegador global
 async function initBrowser() {
   browser = await chromium.launch({ headless: true, slowMo: 50 });
-  const context = await browser.newContext();
-  page = await context.newPage();
-
-  console.log('📡 Iniciando sesión...');
-  await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
-
-  await page.click('button:has-text("Sign in")').catch(() => {});
-  await page.waitForSelector('#identifier', { timeout: 15000 });
-
-  await page.fill('#identifier', USER);
-  await page.fill('#password', PASS);
-
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle' }),
-    page.click('.login100-form-btn')
-  ]);
-
-  // Verificar que login fue exitoso
-  const manageLink = await page.$('a[href="#manage-access-codes"]');
-  if (!manageLink) {
-    throw new Error('❌ Login failed: manage-access-codes link not found');
-  }
-
-  console.log('✅ Login exitoso y sesión persistente!');
+  console.log('🌐 Browser global iniciado');
 }
 
 // 🔧 Masking functions
@@ -77,15 +53,30 @@ app.post('/api/check-access-code', async (req, res) => {
   const { accessCode } = req.body;
   if (!accessCode) return res.status(400).json({ valid: false, message: 'No access code provided' });
 
+  let context;
+  let page;
   try {
-    if (!page || page.isClosed()) {
-      return res.status(500).json({ valid: false, message: 'Browser session not initialized' });
+    if (!browser) {
+      return res.status(500).json({ valid: false, message: 'Browser not initialized' });
     }
 
-    console.log(`🔍 Buscando Access Code: ${accessCode}`);
-    await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
+    // 🔑 Crear nuevo contexto y página para cada request
+    context = await browser.newContext();
+    page = await context.newPage();
 
-    // Espera dinámica y robusta
+    // Login
+    await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
+    await page.click('button:has-text("Sign in")').catch(() => {});
+    await page.waitForSelector('#identifier', { timeout: 15000 });
+    await page.fill('#identifier', USER);
+    await page.fill('#password', PASS);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle' }),
+      page.click('.login100-form-btn')
+    ]);
+
+    // Ir a admin
+    await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
     const manageLocator = page.locator('a[href="#manage-access-codes"]').first();
     await manageLocator.waitFor({ state: 'visible', timeout: 60000 });
     await manageLocator.click();
@@ -95,7 +86,6 @@ app.post('/api/check-access-code', async (req, res) => {
 
     await page.fill('#token_input_token', accessCode);
     await page.click('#check-token-button');
-
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3000);
 
@@ -137,7 +127,6 @@ app.post('/api/check-access-code', async (req, res) => {
   } catch (err) {
     console.error('❌ Error en check-access-code:', err);
 
-    // Guardar screenshot para depuración
     if (page && !page.isClosed()) {
       const filePath = `debug_${Date.now()}.png`;
       await page.screenshot({ path: filePath, fullPage: true });
@@ -145,18 +134,17 @@ app.post('/api/check-access-code', async (req, res) => {
     }
 
     res.status(500).json({ valid: false, message: err.message });
+  } finally {
+    if (context) await context.close(); // Cierra contexto y página temporal
   }
 });
 
 // Health check
 app.get('/api/status', async (req, res) => {
-  const status = {
+  res.json({
     server: 'OK',
-    browser: browser ? 'Initialized' : 'Not initialized',
-    page: page && !page.isClosed() ? 'Active' : 'Closed',
-    url: page && !page.isClosed() ? await page.url() : 'N/A'
-  };
-  res.json(status);
+    browser: browser ? 'Initialized' : 'Not initialized'
+  });
 });
 
 // Ruta principal
@@ -169,7 +157,7 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Iniciar servidor + login persistente
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🌐 Server running at http://localhost:${PORT}`);
