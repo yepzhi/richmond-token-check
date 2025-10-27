@@ -14,9 +14,9 @@ const ADMIN_URL = 'https://richmondlp.com/admin';
 const USER = 'mramirez@richmondelt.com';
 const PASS = 'Pass2025#';
 
-// 🚀 Inicializa navegador y hace login
+// 🚀 Inicializa navegador y hace login una vez
 async function initBrowser() {
-  browser = await chromium.launch({ headless: false, slowMo: 50 });
+  browser = await chromium.launch({ headless: true, slowMo: 50 }); // headless = true
   const context = await browser.newContext();
   page = await context.newPage();
 
@@ -34,23 +34,15 @@ async function initBrowser() {
     page.click('.login100-form-btn')
   ]);
 
-  console.log('✅ Login exitoso!');
+  console.log('✅ Login exitoso y sesión persistente!');
 }
 
-// 🔄 Revisa si la sesión o navegador se cerraron
-async function ensureBrowserReady() {
-  if (!browser || !page || page.isClosed()) {
-    console.log('🔄 Sesión expirada. Reiniciando navegador...');
-    await initBrowser();
-  }
-}
-
-// 🔧 Masking functions: show first 2 + last 2 characters, middle as ***
+// 🔧 Masking functions
 function maskEmail(email) {
   if (!email || !email.includes('@')) return email;
   const [local, domain] = email.split('@');
-  if (local.length <= 4) return local[0] + '***' + local.slice(-1) + '@' + domain;
-  return local.slice(0, 2) + '***' + local.slice(-2) + '@' + domain;
+  if (local.length <= 4) return local[0] + '**' + local.slice(-1) + '@' + domain;
+  return local.slice(0, 2) + '**' + local.slice(-2) + '@' + domain;
 }
 
 function maskName(name) {
@@ -58,8 +50,8 @@ function maskName(name) {
   return name
     .split(' ')
     .map(part => {
-      if (part.length <= 4) return part[0] + '***' + part.slice(-1);
-      return part.slice(0, 2) + '***' + part.slice(-2);
+      if (part.length <= 4) return part[0] + '**' + part.slice(-1);
+      return part.slice(0, 2) + '**' + part.slice(-2);
     })
     .join(' ');
 }
@@ -79,8 +71,9 @@ app.post('/api/check-access-code', async (req, res) => {
   if (!accessCode) return res.status(400).json({ valid: false, message: 'No access code provided' });
 
   try {
-    // ✅ Asegurar navegador y sesión
-    await ensureBrowserReady();
+    if (!page || page.isClosed()) {
+      return res.status(500).json({ valid: false, message: 'Browser session not initialized' });
+    }
 
     console.log(`🔍 Buscando Access Code: ${accessCode}`);
     await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
@@ -137,7 +130,7 @@ app.post('/api/check-access-code', async (req, res) => {
   }
 });
 
-// Estado del servidor
+// Health check
 app.get('/api/status', async (req, res) => {
   const status = {
     server: 'OK',
@@ -151,16 +144,16 @@ app.get('/api/status', async (req, res) => {
 // Ruta principal
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Iniciar servidor
-const PORT = 3000;
-app.listen(PORT, async () => {
-  console.log(`🌐 Server running at http://localhost:${PORT}`);
-  await initBrowser();
-});
-
 // Cerrar navegador al terminar
 process.on('SIGINT', async () => {
   console.log('\n🛑 Closing browser...');
   if (browser) await browser.close();
   process.exit(0);
+});
+
+// Iniciar servidor + login persistente
+const PORT = process.env.PORT || 3000; // ⚡ Puerto dinámico para Render
+app.listen(PORT, async () => {
+  console.log(`🌐 Server running at http://localhost:${PORT}`);
+  await initBrowser();
 });
