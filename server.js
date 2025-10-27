@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { chromium } = require('playwright');
+const fs = require('fs');
 
 const app = express();
 app.use(express.json());
@@ -16,7 +17,7 @@ const PASS = 'Pass2025#';
 
 // 🚀 Inicializa navegador y hace login una vez
 async function initBrowser() {
-  browser = await chromium.launch({ headless: true, slowMo: 50 }); // headless = true
+  browser = await chromium.launch({ headless: true, slowMo: 50 });
   const context = await browser.newContext();
   page = await context.newPage();
 
@@ -24,7 +25,7 @@ async function initBrowser() {
   await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
 
   await page.click('button:has-text("Sign in")').catch(() => {});
-  await page.waitForSelector('#identifier', { timeout: 10000 });
+  await page.waitForSelector('#identifier', { timeout: 15000 });
 
   await page.fill('#identifier', USER);
   await page.fill('#password', PASS);
@@ -33,6 +34,12 @@ async function initBrowser() {
     page.waitForNavigation({ waitUntil: 'networkidle' }),
     page.click('.login100-form-btn')
   ]);
+
+  // Verificar que login fue exitoso
+  const manageLink = await page.$('a[href="#manage-access-codes"]');
+  if (!manageLink) {
+    throw new Error('❌ Login failed: manage-access-codes link not found');
+  }
 
   console.log('✅ Login exitoso y sesión persistente!');
 }
@@ -78,13 +85,17 @@ app.post('/api/check-access-code', async (req, res) => {
     console.log(`🔍 Buscando Access Code: ${accessCode}`);
     await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
 
-    await page.click('a[href="#manage-access-codes"]');
-    await page.waitForSelector('#manage-access-codes', { timeout: 10000 });
+    // Espera dinámica y robusta
+    const manageLocator = page.locator('a[href="#manage-access-codes"]').first();
+    await manageLocator.waitFor({ state: 'visible', timeout: 60000 });
+    await manageLocator.click();
+
+    const tableLocator = page.locator('#manage-access-codes table').first();
+    await tableLocator.waitFor({ state: 'visible', timeout: 30000 });
 
     await page.fill('#token_input_token', accessCode);
-    console.log('✅ Código ingresado en input');
-
     await page.click('#check-token-button');
+
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3000);
 
@@ -105,7 +116,6 @@ app.post('/api/check-access-code', async (req, res) => {
       return res.json({ valid: false, message: 'No results found for this access code', data: { accessCode } });
     }
 
-    // ✅ Aplicar smart masking
     const maskedRows = resultInfo.rows.map(row => row.map((cell, i) => smartMaskCell(resultInfo.headers[i], cell)));
 
     const results = maskedRows.map(row => {
@@ -126,6 +136,14 @@ app.post('/api/check-access-code', async (req, res) => {
 
   } catch (err) {
     console.error('❌ Error en check-access-code:', err);
+
+    // Guardar screenshot para depuración
+    if (page && !page.isClosed()) {
+      const filePath = `debug_${Date.now()}.png`;
+      await page.screenshot({ path: filePath, fullPage: true });
+      console.log(`🖼 Screenshot guardado: ${filePath}`);
+    }
+
     res.status(500).json({ valid: false, message: err.message });
   }
 });
@@ -152,7 +170,7 @@ process.on('SIGINT', async () => {
 });
 
 // Iniciar servidor + login persistente
-const PORT = process.env.PORT || 3000; // ⚡ Puerto dinámico para Render
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🌐 Server running at http://localhost:${PORT}`);
   await initBrowser();
