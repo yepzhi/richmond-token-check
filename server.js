@@ -85,9 +85,25 @@ app.post('/api/check-access-code', async (req, res) => {
 
     console.log(`🔍 Buscando Access Code: ${accessCode}`);
     await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
-
-    await page.click('a[href="#manage-access-codes"]');
-    await page.waitForSelector('#manage-access-codes', { timeout: 10000 });
+    
+    // Esperar a que cargue el menú del panel o un elemento del dashboard
+    await page.waitForSelector('body', { timeout: 20000 });
+    
+    const manageLink = await page.$('a[href="#manage-access-codes"]');
+    
+    if (manageLink) {
+      console.log('✅ Enlace "Manage Access Codes" encontrado.');
+      await manageLink.click();
+    } else {
+      console.warn('⚠️ No se encontró enlace, intentando abrir sección manualmente...');
+      // En algunos casos se puede acceder directamente
+      await page.goto(`${ADMIN_URL}#manage-access-codes`, { waitUntil: 'networkidle' });
+    }
+    
+    // Esperar a que cargue la sección
+    await page.waitForSelector('#manage-access-codes', { timeout: 15000 }).catch(() => {
+      console.warn('⚠️ Sección "Manage Access Codes" no visible, continuando de todas formas...');
+    });
 
     await page.fill('#token_input_token', accessCode);
     console.log('✅ Código ingresado en input');
