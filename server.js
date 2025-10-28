@@ -41,7 +41,7 @@ async function initBrowser() {
 
     // Esperar hasta que desaparezca el formulario de login o se cargue un elemento clave del dashboard
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('nav, #main-content, .dashboard, .menu', { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector('nav, #main-content, .dashboard, .menu', { timeout: 90000 }).catch(() => {});
     
     console.log('✅ Login exitoso y sesión persistente!');
 
@@ -87,7 +87,7 @@ app.post('/api/check-access-code', async (req, res) => {
     await page.goto(ADMIN_URL, { waitUntil: 'networkidle' });
     
     // Esperar a que el contenido principal cargue
-    await page.waitForSelector('body', { timeout: 20000 });
+    await page.waitForSelector('body', { timeout: 90000 });
     
     // Intentar localizar el enlace
     let manageLink = await page.$('a[href="#manage-access-codes"]');
@@ -101,7 +101,7 @@ app.post('/api/check-access-code', async (req, res) => {
     }
     
     // Esperar a que la sección cargue
-    await page.waitForSelector('#manage-access-codes', { timeout: 15000 }).catch(() => {
+    await page.waitForSelector('#manage-access-codes', { timeout: 95000 }).catch(() => {
       console.warn('⚠️ Sección "Manage Access Codes" no visible, continuando de todas formas...');
     });
     
