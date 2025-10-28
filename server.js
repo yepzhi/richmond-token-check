@@ -37,13 +37,13 @@ async function initBrowser() {
     await page.fill('#identifier', USER);
     await page.fill('#password', PASS);
   
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle' }),
-      page.click('.login100-form-btn')
-    ]);
-  
+    await page.click('.login100-form-btn');
+
+    // Esperar hasta que desaparezca el formulario de login o se cargue un elemento clave del dashboard
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('nav, #main-content, .dashboard, .menu', { timeout: 30000 }).catch(() => {});
+    
     console.log('✅ Login exitoso y sesión persistente!');
-  }
 
 // 🔧 Masking functions: exact 2 first + 2 last, middle as **
 function maskEmail(email) {
