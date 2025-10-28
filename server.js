@@ -16,26 +16,34 @@ const PASS = 'Pass2025#';
 
 // 🚀 Inicializa navegador y hace login una vez
 async function initBrowser() {
-  browser = await chromium.launch({ headless: false, slowMo: 50 });
-  const context = await browser.newContext();
-  page = await context.newPage();
-
-  console.log('📡 Iniciando sesión...');
-  await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
-
-  await page.click('button:has-text("Sign in")').catch(() => {});
-  await page.waitForSelector('#identifier', { timeout: 90000 });
-
-  await page.fill('#identifier', USER);
-  await page.fill('#password', PASS);
-
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle' }),
-    page.click('.login100-form-btn')
-  ]);
-
-  console.log('✅ Login exitoso y sesión persistente!');
-}
+    // Si estás en producción (Render, Vercel, etc.) => headless: true
+    const isProd = process.env.NODE_ENV === 'production';
+  
+    browser = await chromium.launch({
+      headless: isProd, // ✅ Evita error "Missing X server" en Render
+      slowMo: isProd ? 0 : 50 // Suaviza animaciones solo en local
+    });
+  
+    const context = await browser.newContext();
+    page = await context.newPage();
+  
+    console.log('📡 Iniciando sesión...');
+    await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
+  
+    // Algunos entornos no muestran el botón Sign in inmediatamente
+    await page.click('button:has-text("Sign in")').catch(() => {});
+    await page.waitForSelector('#identifier', { timeout: 90000 });
+  
+    await page.fill('#identifier', USER);
+    await page.fill('#password', PASS);
+  
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle' }),
+      page.click('.login100-form-btn')
+    ]);
+  
+    console.log('✅ Login exitoso y sesión persistente!');
+  }
 
 // 🔧 Masking functions: exact 2 first + 2 last, middle as **
 function maskEmail(email) {
