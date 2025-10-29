@@ -186,22 +186,32 @@
             border-radius: 5px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             font-size: 13px;
-            max-height: 300px;
-            overflow-y: auto;
+            min-height: 60px;
+            max-height: 80px;
             border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
         }
         
         .live-tail-header {
             color: #667eea;
             font-weight: 600;
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .live-tail-entry {
-            margin: 4px 0;
+            margin: 0;
+            padding: 0;
             color: #555;
-            padding: 3px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            display: flex;
+            align-items: center;
         }
         
         .live-tail-entry.error {
@@ -280,7 +290,7 @@
 <body>
     <div class="container">
         <h1>🎓 Richmond Token Checker</h1>
-        <p class="subtitle">Verify access codes</p>
+        <p class="subtitle">Verify access codes from the Admin Panel</p>
         
         <form id="tokenForm">
             <div class="form-group">
@@ -437,17 +447,17 @@
                 const data = await response.json();
                 const liveTailDiv = document.getElementById('liveTail');
                 
-                liveTailDiv.innerHTML = data.logs.map(log => {
-                    let className = '';
-                    if (log.includes('❌') || log.includes('Error')) className = 'error';
-                    else if (log.includes('✅')) className = 'success';
-                    else if (log.includes('⚠️')) className = 'warning';
+                if (data.logs && data.logs.length > 0) {
+                    // Mostrar solo el último log
+                    const lastLog = data.logs[data.logs.length - 1];
                     
-                    return `<div class="live-tail-entry ${className}">${escapeHtml(log)}</div>`;
-                }).join('');
-                
-                // Auto-scroll al final
-                liveTailDiv.scrollTop = liveTailDiv.scrollHeight;
+                    let className = '';
+                    if (lastLog.includes('❌') || lastLog.includes('Error')) className = 'error';
+                    else if (lastLog.includes('✅')) className = 'success';
+                    else if (lastLog.includes('⚠️')) className = 'warning';
+                    
+                    liveTailDiv.innerHTML = `<div class="live-tail-entry ${className}">${escapeHtml(lastLog)}</div>`;
+                }
             } catch (e) {
                 // Silenciar errores de logs
             }
