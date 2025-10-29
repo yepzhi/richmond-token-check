@@ -290,7 +290,7 @@
 <body>
     <div class="container">
         <h1>🎓 Richmond Token Checker</h1>
-        <p class="subtitle">Verify access codes</p>
+        <p class="subtitle">Verify access codes from the Admin Panel</p>
         
         <form id="tokenForm">
             <div class="form-group">
@@ -462,6 +462,22 @@
                 // Silenciar errores de logs
             }
         }
+        
+        function maskEmail(email) {
+            if (!email || !email.includes('@')) return email;
+            const [local, domain] = email.split('@');
+            if (local.length <= 2) return email;
+            const masked = local[0] + '*'.repeat(Math.max(3, local.length - 2)) + local[local.length - 1];
+            return masked + '@' + domain;
+        }
+        
+        function maskName(name) {
+            if (!name || name.length <= 3) return name;
+            const parts = name.split(' ');
+            return parts.map(part => {
+                if (part.length <= 2) return part;
+                return part[0] + '*'.repeat(Math.max(2, part.length - 2)) + part[part.length - 1];
+            }).join(' ');
         }
     </script>
 </body>
