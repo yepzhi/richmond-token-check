@@ -290,7 +290,7 @@
 <body>
     <div class="container">
         <h1>🎓 Richmond Token Checker</h1>
-        <p class="subtitle">Verify access codes from the Admin Panel</p>
+        <p class="subtitle">Verify access codes</p>
         
         <form id="tokenForm">
             <div class="form-group">
@@ -462,14 +462,6 @@
                 // Silenciar errores de logs
             }
         }
-        
-        function maskName(name) {
-            if (!name || name.length <= 3) return name;
-            const parts = name.split(' ');
-            return parts.map(part => {
-                if (part.length <= 2) return part;
-                return part[0] + '*'.repeat(Math.max(2, part.length - 2)) + part[part.length - 1];
-            }).join(' ');
         }
     </script>
 </body>
