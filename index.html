@@ -463,14 +463,6 @@
             }
         }
         
-        function maskEmail(email) {
-            if (!email || !email.includes('@')) return email;
-            const [local, domain] = email.split('@');
-            if (local.length <= 2) return email;
-            const masked = local[0] + '*'.repeat(Math.max(3, local.length - 2)) + local[local.length - 1];
-            return masked + '@' + domain;
-        }
-        
         function maskName(name) {
             if (!name || name.length <= 3) return name;
             const parts = name.split(' ');
