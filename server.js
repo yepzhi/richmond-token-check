@@ -295,22 +295,31 @@ app.post('/api/check-access-code', async (req, res) => {
     console.log('📍 Paso 7: Extrayendo datos...');
     const resultInfo = await page.evaluate(() => {
       const table = document.querySelector('#manage-access-codes table');
-      if (!table) return { found: false, rows: [], headers: [] };
+      if (!table) {
+        console.log('No table found');
+        return { found: false, rows: [], headers: [] };
+      }
 
       const headers = Array.from(table.querySelectorAll('thead th, tr:first-child th'))
         .map(th => th.innerText.trim())
         .filter(h => h.length > 0);
       
+      console.log('Headers found:', headers.length);
+      
       const rows = Array.from(table.querySelectorAll('tbody tr'))
         .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()))
         .filter(row => row.length > 0 && !row.some(cell => cell.includes('No results')));
 
+      console.log('Rows found:', rows.length);
+      
       return { 
         found: rows.length > 0, 
         headers: headers.length > 0 ? headers : ['No headers'], 
         rows 
       };
     });
+
+    console.log(`📊 Tabla extraída - Headers: ${resultInfo.headers.length}, Filas: ${resultInfo.rows.length}`);
 
     if (!resultInfo.found || resultInfo.rows.length === 0) {
       console.log('⚠️  No se encontraron resultados');
@@ -337,6 +346,7 @@ app.post('/api/check-access-code', async (req, res) => {
     });
 
     console.log('✅ Datos procesados correctamente');
+    console.log(`📊 Resultados encontrados: ${results.length} registro(s)`);
     
     res.json({
       valid: true,
@@ -344,7 +354,7 @@ app.post('/api/check-access-code', async (req, res) => {
       data: {
         accessCode,
         headers: resultInfo.headers,
-        results
+        results: results
       }
     });
 
