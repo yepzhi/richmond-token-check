@@ -1,264 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Check Access Code | Richmond Learning Platform</title>
-  <style>
-    /* ====== GLOBAL STYLES ====== */
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 0;
-      color: #2d3748;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 80px auto;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      padding: 40px;
-      transition: all 0.3s ease;
-    }
-
-    h1 {
-      text-align: center;
-      color: #2d3748;
-      font-size: 26px;
-      margin-bottom: 25px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e0;
-      font-size: 16px;
-      margin-top: 10px;
-      margin-bottom: 20px;
-      transition: border-color 0.2s ease;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-    }
-
-    button {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 14px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 16px;
-      width: 100%;
-      transition: background 0.3s ease;
-    }
-
-    button:hover {
-      background: #5a67d8;
-    }
-
-    .result {
-      margin-top: 25px;
-    }
-
-    .result-item {
-      background: #fafafa;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .result-label {
-      font-weight: bold;
-      color: #4a5568;
-      margin-bottom: 6px;
-    }
-
-    .result-value {
-      font-size: 15px;
-      color: #2d3748;
-    }
-
-    .success {
-      background: #e8f5e9;
-      border-left: 5px solid #4caf50;
-      color: #2e7d32;
-      padding: 12px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-    }
-
-    .error {
-      background: #ffebee;
-      border-left: 5px solid #d32f2f;
-      color: #c62828;
-      padding: 12px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-    }
-
-    .loading {
-      text-align: center;
-      color: #718096;
-      font-style: italic;
-      margin-top: 20px;
-    }
-
-    /* ====== RESPONSIVE DESIGN ====== */
-    @media (max-width: 768px) {
-      .container {
-        margin: 40px 20px;
-        padding: 30px;
-      }
-
-      h1 {
-        font-size: 22px;
-      }
-
-      button {
-        font-size: 15px;
-        padding: 12px;
-      }
-
-      input[type="text"] {
-        font-size: 15px;
-        padding: 12px;
-      }
-
-      .result-item {
-        font-size: 14px;
-        padding: 12px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .container {
-        margin: 25px 12px;
-        padding: 20px;
-      }
-
-      h1 {
-        font-size: 20px;
-      }
-
-      button {
-        font-size: 14px;
-        padding: 10px;
-      }
-
-      input[type="text"] {
-        font-size: 14px;
-        padding: 10px;
-      }
-
-      .result-item {
-        font-size: 13px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Richmond Token Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .results h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .result-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        
+        .result-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .result-value {
+            color: #333;
+            word-break: break-all;
+        }
+        
+        .error {
+            color: #d32f2f;
+            padding: 12px;
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            border-radius: 3px;
+            margin-top: 20px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: right;
+            color: #999;
+            font-size: 11px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .live-tail {
+            margin-top: 30px;
+            background: #f5f5f5;
+            color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 13px;
+            min-height: 60px;
+            max-height: 80px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .live-tail-header {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .live-tail-entry {
+            margin: 0;
+            padding: 0;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .live-tail-entry.error {
+            color: #d32f2f;
+        }
+        
+        .live-tail-entry.success {
+            color: #388e3c;
+        }
+        
+        .live-tail-entry.warning {
+            color: #f57c00;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .result-item {
+                padding: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            input[type="text"] {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .result-item {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .result-label {
+                font-size: 11px;
+                padding: 5px 0;
+            }
+            
+            .result-value {
+                font-size: 12px;
+                word-break: break-word;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔍 Check Access Code</h1>
-    <input type="text" id="accessCode" placeholder="Enter access code..." />
-    <button onclick="checkAccessCode()">Check</button>
-    <div id="results" class="result"></div>
-  </div>
-
-  <script>
-    async function checkAccessCode() {
-      const code = document.getElementById('accessCode').value.trim();
-      const resultsContent = document.getElementById('results');
-
-      if (!code) {
-        resultsContent.innerHTML =
-          '<div class="error">⚠️ Please enter an access code.</div>';
-        return;
-      }
-
-      resultsContent.innerHTML =
-        '<div class="loading">⏳ Checking code, please wait...</div>';
-
-      try {
-        const response = await fetch(`/check-access-code?code=${encodeURIComponent(code)}`);
-        const result = await response.json();
-
-        if (response.ok) {
-          let html = '';
-
-          if (result.valid) {
-            html = `
-              <div class="success">
-                ✅ <strong>${escapeHtml(result.message)}</strong>
-              </div>
-            `;
-
-            if (result.data) {
-              html += `
-                <div class="result-item">
-                  <div class="result-label">Access Code</div>
-                  <div class="result-value"><strong>${escapeHtml(result.data.accessCode)}</strong></div>
-                </div>
-              `;
-
-              if (result.data.results && result.data.results.length > 0) {
-                result.data.results.forEach((item) => {
-                  html += `
-                    <div class="result-item">
-                      <div class="result-label">📋 Access Code Information</div>
-                      <div style="background: white; border-radius: 5px; padding: 10px;">
-                  `;
-                  Object.entries(item).forEach(([key, value]) => {
-                    html += `
-                      <div style="display: grid; grid-template-columns: 130px 1fr; gap: 10px; border-bottom: 1px solid #eee; padding: 6px 0;">
-                        <strong style="color: #667eea;">${escapeHtml(key)}:</strong>
-                        <span>${escapeHtml(value)}</span>
-                      </div>
-                    `;
-                  });
-                  html += `</div></div>`;
-                });
-              }
+    <div class="container">
+        <h1>🎓 Richmond Token Checker</h1>
+        <p class="subtitle">Verify access codes from the Admin Panel</p>
+        
+        <form id="tokenForm">
+            <div class="form-group">
+                <label for="accessCode">Access Code:</label>
+                <input 
+                    type="text" 
+                    id="accessCode" 
+                    name="accessCode" 
+                    placeholder="Enter your access code..."
+                    required
+                >
+            </div>
+            
+            <button type="submit" id="submitBtn">
+                <span id="btnText">🔍 Check Access Code</span>
+            </button>
+        </form>
+        
+        <div class="results" id="results">
+            <h2>Results:</h2>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <div class="live-tail">
+            <div class="live-tail-header">📡 Live Tail - Proceso en tiempo real</div>
+            <div id="liveTail"></div>
+        </div>
+        
+        <div class="footer">
+            developed by <a href="https://github.com/yepzhi" target="_blank">@yepzhi</a>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('tokenForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const resultsDiv = document.getElementById('results');
+        const resultsContent = document.getElementById('resultsContent');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const accessCode = document.getElementById('accessCode').value.trim();
+            
+            if (!accessCode) {
+                resultsContent.innerHTML = '<div class="error">Please enter an access code</div>';
+                resultsDiv.classList.add('show');
+                return;
             }
-          } else {
-            html = `
-              <div class="error">
-                ❌ ${escapeHtml(result.message)}
-              </div>
-            `;
-          }
-
-          resultsContent.innerHTML = html;
-        } else {
-          resultsContent.innerHTML = `
-            <div class="error">❌ Server error: ${escapeHtml(result.message)}</div>
-          `;
+            
+            // Limpiar Live Tail
+            document.getElementById('liveTail').innerHTML = '';
+            
+            // Disable button and show spinner
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span>Checking...';
+            resultsDiv.classList.remove('show');
+            
+            // Iniciar actualización de logs
+            const logInterval = setInterval(updateLogs, 500);
+            
+            try {
+                const response = await fetch('/api/check-access-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accessCode })
+                });
+                
+                clearInterval(logInterval);
+                updateLogs(); // Última actualización
+                
+                const result = await response.json();
+                
+                // Re-enable button
+                submitBtn.disabled = false;
+                btnText.innerHTML = '🔍 Check Access Code';
+                
+                if (response.ok) {
+                    let html = '';
+                    
+                    if (result.valid) {
+                        // ✅ Código encontrado - Mostrar datos
+                        html = '<div class="success">✅ ' + result.message + '</div>';
+                        
+                        if (result.data) {
+                            html += '<div class="result-item">';
+                            html += '<div class="result-label">Access Code</div>';
+                            html += '<div class="result-value"><strong>' + escapeHtml(result.data.accessCode) + '</strong></div>';
+                            html += '</div>';
+                            
+                            if (result.data.results && result.data.results.length > 0) {
+                                result.data.results.forEach((item, idx) => {
+                                    html += '<div class="result-item" style="margin-top: 15px;">';
+                                    html += '<div class="result-label">📋 Access Code Information</div>';
+                                    html += '<div style="background: white; border-radius: 5px; padding: 15px;">';
+                                    
+                                    Object.entries(item).forEach(([key, value]) => {
+                                        let displayValue = value;
+                                        const keyLower = key.toLowerCase();
+                                        
+                                        if (keyLower === 'name') {
+                                            displayValue = maskName(value);
+                                        }
+                                        
+                                        html += '<div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; align-items: start;">';
+                                        html += '<strong style="color: #667eea; word-break: break-word;">' + escapeHtml(key) + ':</strong>';
+                                        html += '<span style="word-break: break-word; white-space: normal;">' + escapeHtml(displayValue) + '</span>';
+                                        html += '</div>';
+                                    });
+                                    
+                                    html += '</div>';
+                                    html += '</div>';
+                                });
+                            }
+                        }
+                    } else {
+                        // ❌ Código no encontrado - Mostrar mensaje positivo con paloma verde
+                        html = '<div class="success" style="background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32;">';
+                        html += '<strong style="font-size: 16px;">✅ ' + result.message + '</strong>';
+                        html += '</div>';
+                    }
+                    
+                    resultsContent.innerHTML = html;
+                    resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(result.message) + '</div>';
+                }
+                
+                resultsDiv.classList.add('show');
+                
+            } catch (error) {
+                submitBtn.disabled = false;
+                btnText.innerHTML = '🔍 Check Access Code';
+                console.error('Fetch error:', error);
+                resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(error.message) + '</div>';
+                resultsDiv.classList.add('show');
+            }
+        });
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
         }
-      } catch (err) {
-        resultsContent.innerHTML = `
-          <div class="error">⚠️ Network error: ${escapeHtml(err.message)}</div>
-        `;
-      }
-    }
-
-    function escapeHtml(text) {
-      if (!text) return '';
-      return text
-        .toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-  </script>
+        
+        async function updateLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                const liveTailDiv = document.getElementById('liveTail');
+                
+                if (data.logs && data.logs.length > 0) {
+                    // Mostrar solo el último log
+                    const lastLog = data.logs[data.logs.length - 1];
+                    
+                    let className = '';
+                    if (lastLog.includes('❌') || lastLog.includes('Error')) className = 'error';
+                    else if (lastLog.includes('✅')) className = 'success';
+                    else if (lastLog.includes('⚠️')) className = 'warning';
+                    
+                    liveTailDiv.innerHTML = `<div class="live-tail-entry ${className}">${escapeHtml(lastLog)}</div>`;
+                }
+            } catch (e) {
+                // Silenciar errores de logs
+            }
+        }
+        
+        function maskEmail(email) {
+            if (!email || !email.includes('@')) return email;
+            const [local, domain] = email.split('@');
+            if (local.length <= 2) return email;
+            const masked = local[0] + '*'.repeat(Math.max(3, local.length - 2)) + local[local.length - 1];
+            return masked + '@' + domain;
+        }
+        
+        function maskName(name) {
+            if (!name || name.length <= 3) return name;
+            const parts = name.split(' ');
+            return parts.map(part => {
+                if (part.length <= 2) return part;
+                return part[0] + '*'.repeat(Math.max(2, part.length - 2)) + part[part.length - 1];
+            }).join(' ');
+        }
+    </script>
 </body>
 </html>
