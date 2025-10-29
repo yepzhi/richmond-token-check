@@ -1,19 +1,13 @@
 {
   "name": "richmond-token-check",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Richmond Access Code Checker",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "ioredis": "^5.8.2",
-    "playwright": "^1.56.1",
-    "rate-limit-redis": "^4.2.3"
+    "express": "^4.18.2",
+    "playwright": "^1.40.0"
   }
 }
