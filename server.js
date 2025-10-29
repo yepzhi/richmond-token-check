@@ -63,6 +63,18 @@ async function initBrowser() {
     console.log('✅ Login exitoso!');
     console.log(`📍 URL actual: ${page.url()}`);
     
+    // Esperar a que se cargue completamente la sesión
+    await page.waitForTimeout(3000);
+    
+    // Navegar al admin directamente para validar que la sesión persiste
+    console.log('📍 Validando sesión en Admin...');
+    try {
+      await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      console.log('✅ Sesión persistente validada en Admin');
+    } catch (e) {
+      console.warn('⚠️  Sesión posiblemente expirada');
+    }
+    
   } catch (error) {
     console.error('❌ Error en initBrowser:', error.message);
     throw error;
@@ -115,8 +127,15 @@ app.post('/api/check-access-code', async (req, res) => {
     
     // PASO 1: Navegar a Admin
     console.log('📍 Paso 1: Navegando a Admin...');
-    await page.goto(ADMIN_URL, { waitUntil: 'networkidle', timeout: 120000 });
-    await page.waitForLoadState('domcontentloaded', { timeout: 60000 });
+    try {
+      await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } catch (e) {
+      console.warn('⚠️  Timeout navegando a Admin, intentando reiniciar sesión...');
+      await initBrowser();
+      await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    }
+    
+    await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(2000);
     
     // PASO 2: Hacer scroll y buscar el link de Manage Access Codes
@@ -257,8 +276,8 @@ app.post('/api/check-access-code', async (req, res) => {
     if (!resultInfo.found || resultInfo.rows.length === 0) {
       console.log('⚠️  No se encontraron resultados');
       return res.json({ 
-        valid: true, 
-        message: 'Es probable que este código no ha sido utilizado, debido que no se encontraron datos de registro, sí el código es válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESS CODE dentro de su sesión', 
+        valid: false, 
+        message: 'Este código no ha sido utilizado, favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
         data: { accessCode } 
       });
     }
