@@ -120,16 +120,21 @@ function maskName(name) {
     .join(' ');
 }
 
-function smartMaskCell(header, value) {
-  if (!value) return value;
-  const lower = header.toLowerCase();
-  // Solo enmascarar nombres, NO emails
-  if (lower.includes('name') && !lower.includes('institution')) {
-    return maskName(value);
+function maskName(name) {
+    if (!name) return name;
+  
+    return name
+      .split(' ')
+      .map(part => {
+        if (part.length <= 4) return part; // nombres cortos sin máscara
+  
+        const visible = Math.floor(part.length / 3); // parte visible al inicio y al final
+        const start = part.slice(0, visible + 1);
+        const end = part.slice(-visible);
+        return start + '***' + end;
+      })
+      .join(' ');
   }
-  // Retornar todo lo demás sin cambios (incluyendo emails)
-  return value;
-}
 
 // 🔍 Endpoint principal: buscar access code
 app.post('/api/check-access-code', async (req, res) => {
