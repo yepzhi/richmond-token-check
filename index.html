@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Richmond Token Checker v1</title>
+    <title>Richmond Token Checker</title>
     <style>
         * {
             margin: 0;
@@ -135,6 +135,7 @@
             margin-bottom: 10px;
             border-left: 4px solid #667eea;
             border-radius: 3px;
+            overflow-x: auto;
         }
         
         .result-label {
@@ -159,20 +160,89 @@
             margin-top: 20px;
         }
         
-        .success {
-            color: #388e3c;
-            padding: 12px;
-            background: #e8f5e9;
-            border-left: 4px solid #388e3c;
-            border-radius: 3px;
-            margin-top: 20px;
+        .footer {
+            margin-top: 40px;
+            text-align: right;
+            color: #999;
+            font-size: 11px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .result-item {
+                padding: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            input[type="text"] {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .result-item {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .result-label {
+                font-size: 11px;
+                padding: 5px 0;
+            }
+            
+            .result-value {
+                font-size: 12px;
+                word-break: break-word;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎓 Richmond Token Checker</h1>
-        <p class="subtitle">Verify access codes</p>
+        <p class="subtitle">Verify access codes from the Admin Panel</p>
         
         <form id="tokenForm">
             <div class="form-group">
@@ -194,6 +264,10 @@
         <div class="results" id="results">
             <h2>Results:</h2>
             <div id="resultsContent"></div>
+        </div>
+        
+        <div class="footer">
+            developed by <a href="https://github.com/yepzhi" target="_blank">@yepzhi</a>
         </div>
     </div>
     
@@ -235,48 +309,52 @@
                 submitBtn.disabled = false;
                 btnText.innerHTML = '🔍 Check Access Code';
                 
-                if (response.ok && result.valid) {
-                    let html = '<div class="success">✅ ' + result.message + '</div>';
+                if (response.ok) {
+                    let html = '';
                     
-                    if (result.data) {
-                        html += '<div class="result-item">';
-                        html += '<div class="result-label">Access Code</div>';
-                        html += '<div class="result-value"><strong>' + escapeHtml(result.data.accessCode) + '</strong></div>';
-                        html += '</div>';
+                    if (result.valid) {
+                        // ✅ Código encontrado - Mostrar datos
+                        html = '<div class="success">✅ ' + result.message + '</div>';
                         
-                        if (result.data.results && result.data.results.length > 0) {
-                            result.data.results.forEach((item, idx) => {
-                                html += '<div class="result-item" style="margin-top: 15px;">';
-                                html += '<div class="result-label">📋 Access Code Information</div>';
-                                html += '<div style="background: white; border-radius: 5px; padding: 15px;">';
-                                
-                                Object.entries(item).forEach(([key, value]) => {
-                                    let displayValue = value;
-                                    const keyLower = key.toLowerCase();
+                        if (result.data) {
+                            html += '<div class="result-item">';
+                            html += '<div class="result-label">Access Code</div>';
+                            html += '<div class="result-value"><strong>' + escapeHtml(result.data.accessCode) + '</strong></div>';
+                            html += '</div>';
+                            
+                            if (result.data.results && result.data.results.length > 0) {
+                                result.data.results.forEach((item, idx) => {
+                                    html += '<div class="result-item" style="margin-top: 15px;">';
+                                    html += '<div class="result-label">📋 Access Code Information</div>';
+                                    html += '<div style="background: white; border-radius: 5px; padding: 15px;">';
                                     
-                                    // Apply masking
-                                    if (keyLower.includes('email')) {
-                                        displayValue = maskEmail(value);
-                                    } else if (keyLower === 'name') {
-                                        displayValue = maskName(value);
-                                    }
+                                    Object.entries(item).forEach(([key, value]) => {
+                                        let displayValue = value;
+                                        const keyLower = key.toLowerCase();
+                                        
+                                        if (keyLower === 'name') {
+                                            displayValue = maskName(value);
+                                        }
+                                        
+                                        html += '<div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; align-items: start;">';
+                                        html += '<strong style="color: #667eea; word-break: break-word;">' + escapeHtml(key) + ':</strong>';
+                                        html += '<span style="word-break: break-word; white-space: normal;">' + escapeHtml(displayValue) + '</span>';
+                                        html += '</div>';
+                                    });
                                     
-                                    html += '<div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">';
-                                    html += '<strong style="color: #667eea; min-width: 120px;">' + escapeHtml(key) + ':</strong>';
-                                    html += '<span style="word-break: break-word; text-align: right;">' + escapeHtml(displayValue) + '</span>';
+                                    html += '</div>';
                                     html += '</div>';
                                 });
-                                
-                                html += '</div>';
-                                html += '</div>';
-                            });
-                        } else {
-                            html += '<div class="error">⚠️ No data found for this access code</div>';
+                            }
                         }
+                    } else {
+                        // ❌ Código no encontrado - Mostrar mensaje positivo con paloma verde
+                        html = '<div class="success" style="background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32;">';
+                        html += '<strong style="font-size: 16px;">✅ ' + result.message + '</strong>';
+                        html += '</div>';
                     }
                     
                     resultsContent.innerHTML = html;
-                } else {
                     resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(result.message) + '</div>';
                 }
                 
