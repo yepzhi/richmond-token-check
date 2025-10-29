@@ -8,6 +8,26 @@ app.use(express.static(path.join(__dirname)));
 
 let browser;
 let page;
+let logBuffer = []; // Buffer para guardar logs
+
+// Función para guardar logs
+function addLog(message) {
+  const timestamp = new Date().toLocaleTimeString();
+  const logEntry = `${timestamp} ${message}`;
+  logBuffer.push(logEntry);
+  console.log(message);
+  // Mantener solo los últimos 100 logs
+  if (logBuffer.length > 100) {
+    logBuffer.shift();
+  }
+}
+
+// Override console.log para capturar todos los logs
+const originalLog = console.log;
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  addLog(args.join(' '));
+};
 
 // Configuración dinámica
 const LOGIN_URL = 'https://richmondlp.com/login';
@@ -103,8 +123,11 @@ function maskName(name) {
 function smartMaskCell(header, value) {
   if (!value) return value;
   const lower = header.toLowerCase();
-  if (lower.includes('email')) return maskEmail(value);
-  if (lower.includes('name')) return maskName(value);
+  // Solo enmascarar nombres, NO emails
+  if (lower.includes('name') && !lower.includes('institution')) {
+    return maskName(value);
+  }
+  // Retornar todo lo demás sin cambios (incluyendo emails)
   return value;
 }
 
@@ -317,6 +340,11 @@ app.post('/api/check-access-code', async (req, res) => {
       error: isProd ? 'Server error' : err.stack
     });
   }
+});
+
+// Endpoint para obtener logs en tiempo real
+app.get('/api/logs', (req, res) => {
+  res.json({ logs: logBuffer });
 });
 
 // Health check
