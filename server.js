@@ -15,18 +15,34 @@ function addLog(message) {
   const timestamp = new Date().toLocaleTimeString();
   const logEntry = `${timestamp} ${message}`;
   logBuffer.push(logEntry);
-  console.log(message);
   // Mantener solo los últimos 100 logs
   if (logBuffer.length > 100) {
     logBuffer.shift();
   }
 }
 
-// Override console.log para capturar todos los logs
+// Guardar el console.log original ANTES de sobrescribirlo
 const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+// Override console methods sin crear loops
 console.log = function(...args) {
+  const message = args.join(' ');
   originalLog.apply(console, args);
-  addLog(args.join(' '));
+  addLog(message);
+};
+
+console.error = function(...args) {
+  const message = args.join(' ');
+  originalError.apply(console, args);
+  addLog(message);
+};
+
+console.warn = function(...args) {
+  const message = args.join(' ');
+  originalWarn.apply(console, args);
+  addLog(message);
 };
 
 // Configuración dinámica
@@ -120,21 +136,16 @@ function maskName(name) {
     .join(' ');
 }
 
-function maskName(name) {
-    if (!name) return name;
-  
-    return name
-      .split(' ')
-      .map(part => {
-        if (part.length <= 4) return part; // nombres cortos sin máscara
-  
-        const visible = Math.floor(part.length / 3); // parte visible al inicio y al final
-        const start = part.slice(0, visible + 1);
-        const end = part.slice(-visible);
-        return start + '***' + end;
-      })
-      .join(' ');
+function smartMaskCell(header, value) {
+  if (!value) return value;
+  const lower = header.toLowerCase();
+  // Solo enmascarar nombres, NO emails
+  if (lower.includes('name') && !lower.includes('institution')) {
+    return maskName(value);
   }
+  // Retornar todo lo demás sin cambios (incluyendo emails)
+  return value;
+}
 
 // 🔍 Endpoint principal: buscar access code
 app.post('/api/check-access-code', async (req, res) => {
