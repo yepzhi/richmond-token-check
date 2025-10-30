@@ -117,14 +117,7 @@ async function initBrowser() {
   }
 }
 
-// 🔧 Masking functions
-function maskEmail(email) {
-  if (!email || !email.includes('@')) return email;
-  const [local, domain] = email.split('@');
-  if (local.length <= 4) return local[0] + '**' + local.slice(-1) + '@' + domain;
-  return local.slice(0, 2) + '**' + local.slice(-2) + '@' + domain;
-}
-
+// 🔧 Masking function
 function maskName(name) {
   if (!name) return name;
   return name
@@ -375,9 +368,41 @@ app.post('/api/check-access-code', async (req, res) => {
         results: results
       }
     });
+    
+    // 🔄 Cerrar sesión y reiniciar para siguiente búsqueda
+    console.log('🔄 Cerrando sesión para reiniciar...');
+    try {
+      if (browser) {
+        await browser.close();
+      }
+      browser = null;
+      page = null;
+      console.log('✅ Sesión cerrada, lista para nueva búsqueda');
+      // Reiniciar navegador en background
+      setTimeout(() => {
+        initBrowser().catch(err => console.error('Error reiniciando navegador:', err));
+      }, 2000);
+    } catch (e) {
+      console.warn('⚠️  Error cerrando sesión:', e.message);
+    }
 
   } catch (err) {
     console.error('❌ Error en check-access-code:', err.message);
+    
+    // También cerrar sesión en caso de error
+    try {
+      if (browser) {
+        await browser.close();
+      }
+      browser = null;
+      page = null;
+      setTimeout(() => {
+        initBrowser().catch(err => console.error('Error reiniciando navegador:', err));
+      }, 2000);
+    } catch (e) {
+      console.warn('⚠️  Error cerrando sesión:', e.message);
+    }
+    
     res.status(500).json({ 
       valid: false, 
       message: err.message,
