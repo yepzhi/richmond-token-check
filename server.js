@@ -258,18 +258,33 @@ app.post('/api/check-access-code', async (req, res) => {
     console.log('📍 Paso 6: Buscando botón de verificación...');
     let button = null;
     
-    // Intento 1: Por ID
+    // Intento 1: Por ID exacto
     button = await page.$('#check-token-button');
+    if (button) {
+      console.log('✅ Botón encontrado por ID');
+    }
     
-    // Intento 2: Por texto (button o a[role="button"])
+    // Intento 2: Por selector a[href] que contenga check
     if (!button) {
-      const allButtons = await page.$$('button, a[role="button"]');
+      button = await page.$('a[href="#check-token"]');
+      if (button) console.log('✅ Botón encontrado por href');
+    }
+    
+    // Intento 3: Por clase
+    if (!button) {
+      button = await page.$('.button--cta');
+      if (button) console.log('✅ Botón encontrado por clase');
+    }
+    
+    // Intento 4: Por texto (button o a[role="button"])
+    if (!button) {
+      const allButtons = await page.$('button, a[role="button"], a.button');
       for (let btn of allButtons) {
         try {
           const text = await btn.innerText();
           if (text.toLowerCase().includes('check')) {
             button = btn;
-            console.log('✅ Botón encontrado por texto');
+            console.log('✅ Botón encontrado por texto:', text);
             break;
           }
         } catch (e) {
@@ -280,6 +295,9 @@ app.post('/api/check-access-code', async (req, res) => {
     
     if (!button) {
       console.error('❌ Botón de verificación no encontrado');
+      console.log('📊 Intentando listar todos los botones disponibles...');
+      const allElements = await page.$('button, a[role="button"], a.button');
+      console.log(`📊 Se encontraron ${allElements.length} elementos tipo botón`);
       return res.status(500).json({ valid: false, message: 'Check button not found' });
     }
     
