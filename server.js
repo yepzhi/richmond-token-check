@@ -336,7 +336,7 @@ app.post('/api/check-access-code', async (req, res) => {
       console.log('⚠️  No se encontraron resultados');
       return res.json({ 
         valid: false, 
-        message: 'Este código no ha sido utilizado, favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
+        message: 'Es probable que este código no ha sido utilizado ó este mal escrito, si es válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
         data: { accessCode } 
       });
     }
