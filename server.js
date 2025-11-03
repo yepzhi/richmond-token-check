@@ -295,13 +295,34 @@ app.post('/api/check-access-code', async (req, res) => {
     
     // Intento 4: Por texto (button o a[role="button"]) - CORREGIDO ✅
     if (!button) {
-      const allButtons = await page.$$('button, a[role="button"], a.button');
+      const allButtons = await page.$('button, a[role="button"], a.button, input[type="submit"]');
       for (let btn of allButtons) {
         try {
-          const text = await btn.innerText();
-          if (text.toLowerCase().includes('check')) {
+          const text = await btn.innerText().catch(() => '');
+          const value = await btn.getAttribute('value').catch(() => '');
+          const combinedText = (text + ' ' + value).toLowerCase();
+          
+          if (combinedText.includes('check') || combinedText.includes('verify') || combinedText.includes('search')) {
             button = btn;
-            console.log('✅ Botón encontrado por texto:', text);
+            console.log('✅ Botón encontrado por texto:', text || value);
+            break;
+          }
+        } catch (e) {
+          // Continuar
+        }
+      }
+    }
+    
+    // Intento 5: Buscar cualquier botón submit visible cerca del input
+    if (!button) {
+      console.log('📍 Buscando botón submit cercano al input...');
+      const submitButtons = await page.$('input[type="submit"], button[type="submit"]');
+      for (let btn of submitButtons) {
+        try {
+          const isVisible = await btn.isVisible();
+          if (isVisible) {
+            button = btn;
+            console.log('✅ Botón submit visible encontrado');
             break;
           }
         } catch (e) {
@@ -313,8 +334,32 @@ app.post('/api/check-access-code', async (req, res) => {
     if (!button) {
       console.error('❌ Botón de verificación no encontrado');
       console.log('📊 Intentando listar todos los botones disponibles...');
-      const allElements = await page.$$('button, a[role="button"], a.button');
+      const allElements = await page.$('button, a[role="button"], a.button, input[type="submit"]');
       console.log(`📊 Se encontraron ${allElements.length} elementos tipo botón`);
+      
+      // DEBUG: Listar todos los botones con sus detalles
+      for (let i = 0; i < allElements.length; i++) {
+        try {
+          const text = await allElements[i].innerText().catch(() => '');
+          const id = await allElements[i].getAttribute('id').catch(() => '');
+          const classes = await allElements[i].getAttribute('class').catch(() => '');
+          const href = await allElements[i].getAttribute('href').catch(() => '');
+          const type = await allElements[i].evaluate(el => el.tagName).catch(() => '');
+          const value = await allElements[i].getAttribute('value').catch(() => '');
+          
+          console.log(`📊 Botón ${i + 1}:`, {
+            tipo: type,
+            texto: text.substring(0, 50),
+            id: id,
+            classes: classes,
+            href: href,
+            value: value
+          });
+        } catch (e) {
+          console.log(`📊 Botón ${i + 1}: Error obteniendo info`);
+        }
+      }
+      
       return res.status(500).json({ valid: false, message: 'Check button not found' });
     }
     
@@ -360,7 +405,7 @@ app.post('/api/check-access-code', async (req, res) => {
       console.log('⚠️  No se encontraron resultados');
       return res.json({ 
         valid: false, 
-        message: 'No se encontraton resultados, si el código es válido, es probable que este código no ha sido utilizado ó bien este mal escrito. En caso de ser válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
+        message: 'No se encontraron resultados, si el código es válido, es probable que este código no ha sido utilizado ó bien este mal escrito. En caso de ser válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
         data: { accessCode } 
       });
     }
