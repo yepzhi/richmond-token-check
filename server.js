@@ -268,8 +268,27 @@ app.post('/api/check-access-code', async (req, res) => {
     
     // PASO 5: Llenar el input
     console.log('📍 Paso 5: Ingresando código...');
+    await input.fill(''); // Limpiar primero
+    await page.waitForTimeout(500);
     await input.fill(accessCode);
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(500);
+    
+    // Verificar que el código se ingresó correctamente
+    const inputValue = await input.inputValue();
+    console.log(`✅ Código ingresado: ${inputValue}`);
+    
+    if (inputValue !== accessCode) {
+      console.warn('⚠️ El código ingresado no coincide, reintentando...');
+      await input.fill('');
+      await page.waitForTimeout(300);
+      await input.type(accessCode, { delay: 50 });
+      await page.waitForTimeout(500);
+    }
+    
+    // Hacer scroll hacia arriba para ver el botón check
+    console.log('📍 Scrolling hacia arriba para ver el botón...');
+    await page.evaluate(() => window.scrollBy(0, -400));
+    await page.waitForTimeout(1000);
     
     // PASO 6: Buscar y hacer click en el botón
     console.log('📍 Paso 6: Buscando botón de verificación...');
@@ -295,34 +314,15 @@ app.post('/api/check-access-code', async (req, res) => {
     
     // Intento 4: Por el span interno "check access code"
     if (!button) {
-      console.log('📍 Buscando por texto "check access code"...');
-      const spanWithText = await page.$('span.button__text:has-text("check access code")');
-      if (spanWithText) {
-        // Obtener el elemento padre (el botón real)
-        button = await spanWithText.evaluateHandle(el => el.closest('button, a'));
-        console.log('✅ Botón encontrado por span interno');
-      }
-    }
-    
-    // Intento 5: Buscar cualquier elemento que contenga ese span
-    if (!button) {
-      console.log('📍 Buscando contenedor del span...');
-      button = await page.$('button:has(span.button__text), a:has(span.button__text)');
-      if (button) console.log('✅ Botón encontrado por contenedor de span');
-    }
-    
-    // Intento 6: Por texto en cualquier botón/link
-    if (!button) {
-      const allButtons = await page.$$('button, a[role="button"], a.button, a, input[type="submit"]');
-      for (let btn of allButtons) {
+      console.log('📍 Buscando por span.button__text...');
+      // Buscar el span y luego su padre
+      const spans = await page.$('span.button__text');
+      for (let span of spans) {
         try {
-          const text = await btn.textContent();
-          const value = await btn.getAttribute('value');
-          const combinedText = ((text || '') + ' ' + (value || '')).toLowerCase();
-          
-          if (combinedText.includes('check') && combinedText.includes('access')) {
-            button = btn;
-            console.log('✅ Botón encontrado por texto:', text);
+          const text = await span.textContent();
+          if (text && text.toLowerCase().includes('check')) {
+            button = await span.evaluateHandle(el => el.closest('button, a'));
+            console.log('✅ Botón encontrado por span interno:', text);
             break;
           }
         } catch (e) {
@@ -331,17 +331,44 @@ app.post('/api/check-access-code', async (req, res) => {
       }
     }
     
-    // Intento 7: Buscar cualquier botón submit visible cerca del input
+    // Intento 5: Buscar botón que esté cerca del input (mismo formulario/sección)
     if (!button) {
-      console.log('📍 Buscando botón submit cercano al input...');
-      const submitButtons = await page.$$('input[type="submit"], button[type="submit"]');
-      for (let btn of submitButtons) {
+      console.log('📍 Buscando botón en la misma sección del input...');
+      const section = await page.$('#manage-access-codes');
+      if (section) {
+        const sectionButtons = await section.$('button, a.button, input[type="submit"]');
+        for (let btn of sectionButtons) {
+          try {
+            const isVisible = await btn.isVisible();
+            if (isVisible) {
+              const text = await btn.textContent();
+              if (text && text.toLowerCase().includes('check')) {
+                button = btn;
+                console.log('✅ Botón encontrado en sección:', text);
+                break;
+              }
+            }
+          } catch (e) {
+            // Continuar
+          }
+        }
+      }
+    }
+    
+    // Intento 6: Por texto en cualquier botón/link (más estricto)
+    if (!button) {
+      console.log('📍 Búsqueda general por texto...');
+      const allButtons = await page.$('button, a[role="button"], a.button, a');
+      for (let btn of allButtons) {
         try {
-          const isVisible = await btn.isVisible();
-          if (isVisible) {
-            button = btn;
-            console.log('✅ Botón submit visible encontrado');
-            break;
+          const text = await btn.textContent();
+          if (text && text.toLowerCase().includes('check') && text.toLowerCase().includes('access')) {
+            const isVisible = await btn.isVisible();
+            if (isVisible) {
+              button = btn;
+              console.log('✅ Botón encontrado por texto completo:', text.trim());
+              break;
+            }
           }
         } catch (e) {
           // Continuar
