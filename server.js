@@ -55,8 +55,10 @@ const PASS = 'Pass2025#';
 const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 console.log(`🔧 Entorno: ${isProd ? 'PRODUCCIÓN (Render)' : 'LOCAL'}`);
 
-// 🚀 Inicializa navegador y hace login una vez
-async function initBrowser() {
+// 🚀 Inicializa navegador y hace login con retry automático
+async function initBrowser(retryCount = 0) {
+  const MAX_RETRIES = 3;
+  
   try {
     console.log('🌐 Iniciando Chromium...');
     
@@ -66,7 +68,8 @@ async function initBrowser() {
       args: isProd ? [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage'
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
       ] : []
     };
     
@@ -75,7 +78,7 @@ async function initBrowser() {
     page = await context.newPage();
     
     console.log('📡 Navegando a login...');
-    await page.goto(LOGIN_URL, { waitUntil: 'networkidle' });
+    await page.goto(LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForTimeout(1000);
     
     console.log('📍 Esperando campo de usuario...');
@@ -93,7 +96,7 @@ async function initBrowser() {
     await page.click('button:has-text("Sign in")');
     
     console.log('📍 Esperando que cargue el dashboard...');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
     await page.waitForTimeout(2000);
     
     console.log('✅ Login exitoso!');
@@ -112,7 +115,28 @@ async function initBrowser() {
     }
     
   } catch (error) {
-    console.error('❌ Error en initBrowser:', error.message);
+    console.error(`❌ Error en initBrowser (intento ${retryCount + 1}/${MAX_RETRIES}):`, error.message);
+    
+    // Cerrar navegador si existe
+    try {
+      if (browser) {
+        await browser.close();
+      }
+    } catch (e) {
+      // Ignorar errores al cerrar
+    }
+    
+    browser = null;
+    page = null;
+    
+    // Reintentar si no hemos llegado al límite
+    if (retryCount < MAX_RETRIES) {
+      const waitTime = (retryCount + 1) * 2000; // 2s, 4s, 6s
+      console.log(`🔄 Reintentando en ${waitTime/1000} segundos...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return initBrowser(retryCount + 1);
+    }
+    
     throw error;
   }
 }
@@ -151,8 +175,8 @@ app.post('/api/check-access-code', async (req, res) => {
   try {
     // Validar que la sesión esté activa
     if (!page || page.isClosed()) {
-      console.error('❌ Página cerrada o no inicializada');
-      return res.status(500).json({ valid: false, message: 'Browser session not initialized' });
+      console.error('❌ Página cerrada o no inicializada, reiniciando...');
+      await initBrowser();
     }
 
     console.log(`🔍 Buscando Access Code: ${accessCode}`);
@@ -269,9 +293,9 @@ app.post('/api/check-access-code', async (req, res) => {
       if (button) console.log('✅ Botón encontrado por clase');
     }
     
-    // Intento 4: Por texto (button o a[role="button"])
+    // Intento 4: Por texto (button o a[role="button"]) - CORREGIDO ✅
     if (!button) {
-      const allButtons = await page.$('button, a[role="button"], a.button');
+      const allButtons = await page.$$('button, a[role="button"], a.button');
       for (let btn of allButtons) {
         try {
           const text = await btn.innerText();
@@ -289,7 +313,7 @@ app.post('/api/check-access-code', async (req, res) => {
     if (!button) {
       console.error('❌ Botón de verificación no encontrado');
       console.log('📊 Intentando listar todos los botones disponibles...');
-      const allElements = await page.$('button, a[role="button"], a.button');
+      const allElements = await page.$$('button, a[role="button"], a.button');
       console.log(`📊 Se encontraron ${allElements.length} elementos tipo botón`);
       return res.status(500).json({ valid: false, message: 'Check button not found' });
     }
@@ -336,7 +360,7 @@ app.post('/api/check-access-code', async (req, res) => {
       console.log('⚠️  No se encontraron resultados');
       return res.json({ 
         valid: false, 
-        message: 'Es probable que este código no ha sido utilizado ó este mal escrito, si es válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
+        message: 'No se encontraton resultados, si el código es válido, es probable que este código no ha sido utilizado ó bien este mal escrito. En caso de ser válido favor de proceder a registrarse ó agregar el producto en el boton +ADD ACESSS CODE dentro de su sesión', 
         data: { accessCode } 
       });
     }
@@ -453,6 +477,7 @@ app.listen(PORT, async () => {
     console.log('✅ Sistema listo para recibir peticiones\n');
   } catch (error) {
     console.error('❌ Error fatal al inicializar:', error.message);
-    process.exit(1);
+    console.error('⚠️  El servidor continuará ejecutándose pero puede que necesite reinicio manual');
+    // No cerrar el servidor, permitir que continúe
   }
 });
