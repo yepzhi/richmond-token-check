@@ -356,19 +356,67 @@ app.post('/api/check-access-code', async (req, res) => {
     
     console.log('✅ Botón encontrado, haciendo click...');
     await button.click({ timeout: 15000 });
+    
+    console.log('📍 Esperando a que carguen los resultados...');
     await page.waitForTimeout(3000);
     
-    // Esperar a que carguen los resultados
+    // Esperar a que carguen los resultados de múltiples formas
     await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    
+    // Intentar esperar a que aparezca la tabla con datos
+    try {
+      await page.waitForSelector('#manage-access-codes table tbody tr', { timeout: 10000 });
+      console.log('✅ Tabla de resultados detectada');
+    } catch (e) {
+      console.log('⚠️ Tabla no detectada, continuando...');
+    }
+    
     await page.waitForTimeout(2000);
     
     // PASO 7: Extraer datos
     console.log('📍 Paso 7: Extrayendo datos...');
+    
+    // Hacer scroll para asegurarse que la tabla esté visible
+    await page.evaluate(() => window.scrollBy(0, 400));
+    await page.waitForTimeout(1000);
+    
     const resultInfo = await page.evaluate(() => {
       const table = document.querySelector('#manage-access-codes table');
       if (!table) {
-        console.log('No table found');
-        return { found: false, rows: [], headers: [] };
+        // Intentar buscar cualquier tabla visible
+        const allTables = document.querySelectorAll('table');
+        console.log('Tablas encontradas:', allTables.length);
+        
+        if (allTables.length === 0) {
+          return { found: false, rows: [], headers: [] };
+        }
+        
+        // Usar la última tabla visible
+        const visibleTable = Array.from(allTables).reverse().find(t => {
+          const rect = t.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+        
+        if (!visibleTable) {
+          return { found: false, rows: [], headers: [] };
+        }
+        
+        const headers = Array.from(visibleTable.querySelectorAll('thead th, tr:first-child th'))
+          .map(th => th.innerText.trim())
+          .filter(h => h.length > 0);
+        
+        const rows = Array.from(visibleTable.querySelectorAll('tbody tr'))
+          .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()))
+          .filter(row => row.length > 0 && !row.some(cell => cell.toLowerCase().includes('no result')));
+        
+        console.log('Tabla alternativa - Headers:', headers.length, 'Rows:', rows.length);
+        
+        return { 
+          found: rows.length > 0, 
+          headers: headers.length > 0 ? headers : ['No headers'], 
+          rows 
+        };
       }
 
       const headers = Array.from(table.querySelectorAll('thead th, tr:first-child th'))
@@ -379,7 +427,7 @@ app.post('/api/check-access-code', async (req, res) => {
       
       const rows = Array.from(table.querySelectorAll('tbody tr'))
         .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()))
-        .filter(row => row.length > 0 && !row.some(cell => cell.includes('No results')));
+        .filter(row => row.length > 0 && !row.some(cell => cell.toLowerCase().includes('no result')));
 
       console.log('Rows found:', rows.length);
       
