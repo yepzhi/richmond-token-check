@@ -311,6 +311,21 @@ app.post('/api/check-access-code', async (req, res) => {
       button = await page.$('.button--cta');
       if (button) console.log('✅ Botón encontrado por clase');
     }
+    
+    // Intento 4: Por el span interno "check access code"
+    if (!button) {
+      console.log('📍 Buscando por span.button__text...');
+      // Buscar el span y luego su padre
+      const spans = await page.$$('span.button__text'); // <-- CORREGIDO: $$ (plural)
+      for (let span of spans) {
+        try {
+          const text = await span.textContent();
+          if (text && text.toLowerCase().includes('check')) {
+            button = await span.evaluateHandle(el => el.closest('button, a'));
+            console.log('✅ Botón encontrado por span interno:', text);
+            break;
+          }
+        } catch (e) {
           // Continuar
         }
       }
@@ -321,7 +336,7 @@ app.post('/api/check-access-code', async (req, res) => {
       console.log('📍 Buscando botón en la misma sección del input...');
       const section = await page.$('#manage-access-codes');
       if (section) {
-        const sectionButtons = await section.$('button, a.button, input[type="submit"]');
+        const sectionButtons = await section.$$('button, a.button, input[type="submit"]'); // <-- CORREGIDO: $$ (plural)
         for (let btn of sectionButtons) {
           try {
             const isVisible = await btn.isVisible();
@@ -343,7 +358,7 @@ app.post('/api/check-access-code', async (req, res) => {
     // Intento 6: Por texto en cualquier botón/link (más estricto)
     if (!button) {
       console.log('📍 Búsqueda general por texto...');
-      const allButtons = await page.$('button, a[role="button"], a.button, a');
+      const allButtons = await page.$$('button, a[role="button"], a.button, a'); // <-- CORREGIDO: $$ (plural)
       for (let btn of allButtons) {
         try {
           const text = await btn.textContent();
