@@ -404,7 +404,7 @@ app.post('/api/check-access-code', async (req, res) => {
     // PASO 7: Extraer datos
     console.log('📍 Paso 7: Extrayendo datos...');
     
-    // Hacer scroll para asegurarse que la tabla esté visible
+    // Hacer scroll para asegurarse que la tabla esté visible.
     await page.evaluate(() => window.scrollBy(0, 400));
     await page.waitForTimeout(1000);
     
