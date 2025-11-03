@@ -285,10 +285,10 @@ app.post('/api/check-access-code', async (req, res) => {
       await page.waitForTimeout(500);
     }
     
-    // Hacer scroll hacia arriba para ver el botón check
-    console.log('📍 Scrolling hacia arriba para ver el botón...');
-    await page.evaluate(() => window.scrollBy(0, -400));
-    await page.waitForTimeout(1000);
+    // --- LÍNEAS ELIMINADAS ---
+    // Se eliminó el "scroll hacia arriba" que estaba aquí,
+    // porque ocultaba el botón.
+    // -------------------------
     
     // =================================================================
     // PASO 6: LÓGICA ROBUSTA RESTAURADA (DEL CÓDIGO VIEJO, PERO CORREGIDA)
