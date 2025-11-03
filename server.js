@@ -311,21 +311,6 @@ app.post('/api/check-access-code', async (req, res) => {
       button = await page.$('.button--cta');
       if (button) console.log('✅ Botón encontrado por clase');
     }
-    
-    // Intento 4: Por el span interno "check access code"
-    if (!button) {
-      console.log('📍 Buscando por span.button__text...');
-      // Buscar el span y luego su padre
-      const spans = await page.$('span.button__text');
-      for (let span of spans) {
-        try {
-          const text = await span.textContent();
-          if (text && text.toLowerCase().includes('check')) {
-            button = await span.evaluateHandle(el => el.closest('button, a'));
-            console.log('✅ Botón encontrado por span interno:', text);
-            break;
-          }
-        } catch (e) {
           // Continuar
         }
       }
