@@ -293,18 +293,36 @@ app.post('/api/check-access-code', async (req, res) => {
       if (button) console.log('✅ Botón encontrado por clase');
     }
     
-    // Intento 4: Por texto (button o a[role="button"]) - CORREGIDO ✅
+    // Intento 4: Por el span interno "check access code"
     if (!button) {
-      const allButtons = await page.$('button, a[role="button"], a.button, input[type="submit"]');
+      console.log('📍 Buscando por texto "check access code"...');
+      const spanWithText = await page.$('span.button__text:has-text("check access code")');
+      if (spanWithText) {
+        // Obtener el elemento padre (el botón real)
+        button = await spanWithText.evaluateHandle(el => el.closest('button, a'));
+        console.log('✅ Botón encontrado por span interno');
+      }
+    }
+    
+    // Intento 5: Buscar cualquier elemento que contenga ese span
+    if (!button) {
+      console.log('📍 Buscando contenedor del span...');
+      button = await page.$('button:has(span.button__text), a:has(span.button__text)');
+      if (button) console.log('✅ Botón encontrado por contenedor de span');
+    }
+    
+    // Intento 6: Por texto en cualquier botón/link
+    if (!button) {
+      const allButtons = await page.$$('button, a[role="button"], a.button, a, input[type="submit"]');
       for (let btn of allButtons) {
         try {
-          const text = await btn.innerText().catch(() => '');
-          const value = await btn.getAttribute('value').catch(() => '');
-          const combinedText = (text + ' ' + value).toLowerCase();
+          const text = await btn.textContent();
+          const value = await btn.getAttribute('value');
+          const combinedText = ((text || '') + ' ' + (value || '')).toLowerCase();
           
-          if (combinedText.includes('check') || combinedText.includes('verify') || combinedText.includes('search')) {
+          if (combinedText.includes('check') && combinedText.includes('access')) {
             button = btn;
-            console.log('✅ Botón encontrado por texto:', text || value);
+            console.log('✅ Botón encontrado por texto:', text);
             break;
           }
         } catch (e) {
@@ -313,10 +331,10 @@ app.post('/api/check-access-code', async (req, res) => {
       }
     }
     
-    // Intento 5: Buscar cualquier botón submit visible cerca del input
+    // Intento 7: Buscar cualquier botón submit visible cerca del input
     if (!button) {
       console.log('📍 Buscando botón submit cercano al input...');
-      const submitButtons = await page.$('input[type="submit"], button[type="submit"]');
+      const submitButtons = await page.$$('input[type="submit"], button[type="submit"]');
       for (let btn of submitButtons) {
         try {
           const isVisible = await btn.isVisible();
@@ -333,33 +351,6 @@ app.post('/api/check-access-code', async (req, res) => {
     
     if (!button) {
       console.error('❌ Botón de verificación no encontrado');
-      console.log('📊 Intentando listar todos los botones disponibles...');
-      const allElements = await page.$('button, a[role="button"], a.button, input[type="submit"]');
-      console.log(`📊 Se encontraron ${allElements.length} elementos tipo botón`);
-      
-      // DEBUG: Listar todos los botones con sus detalles
-      for (let i = 0; i < allElements.length; i++) {
-        try {
-          const text = await allElements[i].innerText().catch(() => '');
-          const id = await allElements[i].getAttribute('id').catch(() => '');
-          const classes = await allElements[i].getAttribute('class').catch(() => '');
-          const href = await allElements[i].getAttribute('href').catch(() => '');
-          const type = await allElements[i].evaluate(el => el.tagName).catch(() => '');
-          const value = await allElements[i].getAttribute('value').catch(() => '');
-          
-          console.log(`📊 Botón ${i + 1}:`, {
-            tipo: type,
-            texto: text.substring(0, 50),
-            id: id,
-            classes: classes,
-            href: href,
-            value: value
-          });
-        } catch (e) {
-          console.log(`📊 Botón ${i + 1}: Error obteniendo info`);
-        }
-      }
-      
       return res.status(500).json({ valid: false, message: 'Check button not found' });
     }
     
