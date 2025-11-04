@@ -633,16 +633,21 @@ process.on('SIGINT', async () => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚀 Servidor ejecutándose en http://localhost:${PORT}`);
   console.log(`📍 Entorno: ${isProd ? '🔴 PRODUCCIÓN (Render)' : '🟢 LOCAL'}\n`);
+});
+
+// Inicializar navegador DESPUÉS de que el servidor esté arriba
+server.on('listening', async () => {
+  console.log('✅ Servidor HTTP listo, iniciando navegador...');
   
   try {
     await initBrowser();
-    console.log('✅ Sistema listo para recibir peticiones\n');
+    console.log('✅ Sistema completamente listo para recibir peticiones\n');
   } catch (error) {
-    console.error('❌ Error fatal al inicializar:', error.message);
-    console.error('⚠️  El servidor continuará ejecutándose pero puede que necesite reinicio manual');
+    console.error('❌ Error al inicializar navegador:', error.message);
+    console.warn('⚠️  El servidor HTTP sigue funcionando. El navegador se iniciará en el primer request.\n');
     // No cerrar el servidor, permitir que continúe
   }
 });
