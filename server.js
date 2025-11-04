@@ -64,54 +64,108 @@ async function initBrowser(retryCount = 0) {
     
     const launchOptions = {
       headless: isProd,
-      slowMo: isProd ? 0 : 50,
+      slowMo: isProd ? 100 : 50, // Más lento para parecer humano
       args: isProd ? [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-blink-features=AutomationControlled' // Ocultar automatización
       ] : []
     };
     
     browser = await chromium.launch(launchOptions);
-    const context = await browser.newContext();
+    
+    // Crear contexto con user agent real y permisos
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: 1920, height: 1080 },
+      locale: 'en-US',
+      timezoneId: 'America/New_York',
+      permissions: ['geolocation']
+    });
+    
+    // Inyectar script para ocultar webdriver
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+      });
+      
+      // Ocultar otras señales de automatización
+      window.chrome = {
+        runtime: {}
+      };
+      
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5]
+      });
+      
+      Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en']
+      });
+    });
+    
     page = await context.newPage();
     
     console.log('📡 Navegando a login...');
     await page.goto(LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(1000);
+    
+    // Esperar de forma más "humana"
+    await page.waitForTimeout(2000 + Math.random() * 1000);
     
     console.log('📍 Esperando campo de usuario...');
     await page.waitForSelector('#identifier', { timeout: 90000 });
     
+    // Espera random para simular lectura
+    await page.waitForTimeout(1000 + Math.random() * 1000);
+    
     console.log('📍 Llenando correo...');
-    await page.fill('#identifier', USER);
-    await page.waitForTimeout(500);
+    await page.click('#identifier'); // Click antes de escribir
+    await page.waitForTimeout(300);
+    await page.type('#identifier', USER, { delay: 100 + Math.random() * 100 }); // Tipear con delay
+    await page.waitForTimeout(800 + Math.random() * 400);
     
     console.log('📍 Llenando contraseña...');
-    await page.fill('#password', PASS);
-    await page.waitForTimeout(500);
+    await page.click('#password');
+    await page.waitForTimeout(300);
+    await page.type('#password', PASS, { delay: 100 + Math.random() * 100 });
+    await page.waitForTimeout(1000 + Math.random() * 500);
     
     console.log('📍 Haciendo click en botón Sign in...');
     await page.click('button:has-text("Sign in")');
     
     console.log('📍 Esperando que cargue el dashboard...');
     await page.waitForLoadState('networkidle', { timeout: 60000 });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
+    
+    // Verificar si el login fue exitoso revisando la URL
+    const currentUrl = page.url();
+    console.log(`📍 URL actual después de login: ${currentUrl}`);
+    
+    if (currentUrl.includes('login') || currentUrl.includes('error')) {
+      throw new Error('Login falló - redirigido a página de login o error');
+    }
     
     console.log('✅ Login exitoso!');
-    console.log(`📍 URL actual: ${page.url()}`);
     
     // Esperar a que se cargue completamente la sesión
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(3000 + Math.random() * 1000);
     
     // Navegar al admin directamente para validar que la sesión persiste
     console.log('📍 Validando sesión en Admin...');
     try {
       await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForTimeout(2000);
+      
+      const adminUrl = page.url();
+      if (adminUrl.includes('login') || adminUrl.includes('error')) {
+        throw new Error('Sesión no válida en Admin');
+      }
+      
       console.log('✅ Sesión persistente validada en Admin');
     } catch (e) {
-      console.warn('⚠️  Sesión posiblemente expirada');
+      console.warn('⚠️ Error validando sesión:', e.message);
+      throw e;
     }
     
   } catch (error) {
@@ -131,7 +185,7 @@ async function initBrowser(retryCount = 0) {
     
     // Reintentar si no hemos llegado al límite
     if (retryCount < MAX_RETRIES) {
-      const waitTime = (retryCount + 1) * 2000; // 2s, 4s, 6s
+      const waitTime = (retryCount + 1) * 5000; // 5s, 10s, 15s (más tiempo entre intentos)
       console.log(`🔄 Reintentando en ${waitTime/1000} segundos...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
       return initBrowser(retryCount + 1);
@@ -285,14 +339,12 @@ app.post('/api/check-access-code', async (req, res) => {
       await page.waitForTimeout(500);
     }
     
-    // --- LÍNEAS ELIMINADAS ---
-    // Se eliminó el "scroll hacia arriba" que estaba aquí,
-    // porque ocultaba el botón.
-    // -------------------------
+    // Hacer scroll hacia arriba para ver el botón check
+    console.log('📍 Scrolling hacia arriba para ver el botón...');
+    await page.evaluate(() => window.scrollBy(0, -400));
+    await page.waitForTimeout(1000);
     
-    // =================================================================
-    // PASO 6: LÓGICA ROBUSTA RESTAURADA (DEL CÓDIGO VIEJO, PERO CORREGIDA)
-    // =================================================================
+    // PASO 6: Buscar y hacer click en el botón
     console.log('📍 Paso 6: Buscando botón de verificación...');
     let button = null;
     
@@ -318,7 +370,7 @@ app.post('/api/check-access-code', async (req, res) => {
     if (!button) {
       console.log('📍 Buscando por span.button__text...');
       // Buscar el span y luego su padre
-      const spans = await page.$$('span.button__text'); // <-- CORREGIDO: $$ (plural)
+      const spans = await page.$('span.button__text');
       for (let span of spans) {
         try {
           const text = await span.textContent();
@@ -338,7 +390,7 @@ app.post('/api/check-access-code', async (req, res) => {
       console.log('📍 Buscando botón en la misma sección del input...');
       const section = await page.$('#manage-access-codes');
       if (section) {
-        const sectionButtons = await section.$$('button, a.button, input[type="submit"]'); // <-- CORREGIDO: $$ (plural)
+        const sectionButtons = await section.$('button, a.button, input[type="submit"]');
         for (let btn of sectionButtons) {
           try {
             const isVisible = await btn.isVisible();
@@ -360,7 +412,7 @@ app.post('/api/check-access-code', async (req, res) => {
     // Intento 6: Por texto en cualquier botón/link (más estricto)
     if (!button) {
       console.log('📍 Búsqueda general por texto...');
-      const allButtons = await page.$$('button, a[role="button"], a.button, a'); // <-- CORREGIDO: $$ (plural)
+      const allButtons = await page.$('button, a[role="button"], a.button, a');
       for (let btn of allButtons) {
         try {
           const text = await btn.textContent();
@@ -378,10 +430,6 @@ app.post('/api/check-access-code', async (req, res) => {
       }
     }
     
-    // =================================================================
-    // FIN DEL PASO 6 RESTAURADO
-    // =================================================================
-
     if (!button) {
       console.error('❌ Botón de verificación no encontrado');
       return res.status(500).json({ valid: false, message: 'Check button not found' });
@@ -410,7 +458,7 @@ app.post('/api/check-access-code', async (req, res) => {
     // PASO 7: Extraer datos
     console.log('📍 Paso 7: Extrayendo datos...');
     
-    // Hacer scroll para asegurarse que la tabla esté visible.
+    // Hacer scroll para asegurarse que la tabla esté visible
     await page.evaluate(() => window.scrollBy(0, 400));
     await page.waitForTimeout(1000);
     
