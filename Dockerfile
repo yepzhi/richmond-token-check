@@ -11,23 +11,22 @@ COPY package*.json ./
 RUN npm install
 
 # Install system dependencies for Chromium using Playwright's utility
-# This ensures we get exactly the accepted packages for this Debian version
 RUN npx playwright install-deps chromium
 
-# Create a user with ID 1000 (required by Hugging Face Spaces)
-RUN useradd -m -u 1000 user
+# Note: The 'node' image already creates a user named 'node' with UID 1000.
+# We will just use that instead of creating a new 'user'.
 
-# Change ownership of the app directory to the new user
-RUN chown -R user:user /app
+# Change ownership of the app directory to the node user
+RUN chown -R node:node /app
 
-# Switch to the new user
-USER user
+# Switch to the node user
+USER node
 
-# Install Chromium binary (as the user, so it goes to /home/user/.cache)
+# Install Chromium binary (as the user, so it goes to /home/node/.cache)
 RUN npx playwright install chromium
 
 # Copy the rest of the application code
-COPY --chown=user:user . .
+COPY --chown=node:node . .
 
 # Expose the port commonly used by Hugging Face Spaces (7860)
 ENV PORT=7860
