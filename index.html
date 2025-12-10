@@ -337,21 +337,13 @@
             transition: all 0.3s;
         }
 
-        .status-tag.ready {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
         }
     </style>
 </head>
 
 <body>
-    <div id="statusOverlay">
-        <div class="spinner"></div>
-        <div class="status-text">Warming up engines...</div>
-        <div class="status-subtext">Connecting securely to Richmond portal</div>
-    </div>
-
     <div class="container">
         <h1>🎓 Richmond Token Checker</h1>
         <p class="subtitle">Verify access codes v2</p>
@@ -387,46 +379,8 @@
         </div>
     </div>
 
+    <!-- UI Logic -->
     <script>
-        const form = document.getElementById('tokenForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const resultsDiv = document.getElementById('results');
-        const resultsContent = document.getElementById('resultsContent');
-        const accessCodeInput = document.getElementById('accessCode');
-        const statusOverlay = document.getElementById('statusOverlay');
-        const systemStatus = document.getElementById('systemStatus');
-
-        let isReady = false;
-
-        // Poll for ready status
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-
-                if (data.ready) {
-                    if (!isReady) {
-                        isReady = true;
-                        // Enable UI
-                        statusOverlay.style.opacity = '0';
-                        setTimeout(() => statusOverlay.style.display = 'none', 500);
-
-                        systemStatus.className = 'status-tag ready';
-                        systemStatus.innerHTML = '✅ System Ready - Connected securely';
-
-                        accessCodeInput.disabled = false;
-                        submitBtn.disabled = false;
-                        accessCodeInput.focus();
-                    }
-                } else {
-                    isReady = false;
-                    systemStatus.innerHTML = `🔄 System Initializing... (${data.page || 'Starting'})`;
-                    // If we lost connection, maybe show overlay again? 
-                    // For now let's just update the status tag to avoid being too annoying if it's a temp glitch
-                }
-            } catch (e) {
-                console.error('Status check failed', e);
             }
         }
 
