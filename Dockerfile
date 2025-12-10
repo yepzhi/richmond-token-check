@@ -1,48 +1,29 @@
 # Use the official Node.js 18 image
 FROM node:18
 
-# Install system dependencies for Playwright/Chromium
-# Based on official playwright docs + usually needed for headless chrome
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libnspr4 \
-    libatspi0 \
-    libx11-xcb1 \
-    libdbus-glib-1-2 \
-    libgbm1 \
-    libasound2 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libxss1 \
-    libxtst6 \
-    fonts-liberation \
-    libappindicator3-1 \
-    libgconf-2-4 \
-    lsb-release \
-    wget \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Set working directory
+WORKDIR /app
+
+# Copy package files first
+COPY package*.json ./
+
+# Install NPM dependencies (as root, so we can run install-deps)
+RUN npm install
+
+# Install system dependencies for Chromium using Playwright's utility
+# This ensures we get exactly the accepted packages for this Debian version
+RUN npx playwright install-deps chromium
 
 # Create a user with ID 1000 (required by Hugging Face Spaces)
 RUN useradd -m -u 1000 user
 
-# Set working directory and change ownership
-WORKDIR /app
+# Change ownership of the app directory to the new user
 RUN chown -R user:user /app
 
 # Switch to the new user
 USER user
 
-# Copy package files
-COPY --chown=user:user package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Install Playwright browsers (Chromium only to save space/time)
-# We need to install it as the user so it goes into /home/user/.cache
+# Install Chromium binary (as the user, so it goes to /home/user/.cache)
 RUN npx playwright install chromium
 
 # Copy the rest of the application code
