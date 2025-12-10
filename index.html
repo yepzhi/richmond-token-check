@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ricardo Access Code Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+
+        .result-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .error {
+            color: #d32f2f;
+            padding: 12px;
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            border-radius: 3px;
+            margin-top: 20px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: right;
+            color: #999;
+            font-size: 11px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .live-tail {
+            margin-top: 30px;
+            background: #f5f5f5;
+            color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 13px;
+            min-height: 60px;
+            max-height: 80px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .live-tail-header {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .live-tail-entry {
+            margin: 0;
+            padding: 0;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .live-tail-entry.error {
+            color: #d32f2f;
+        }
+
+        .live-tail-entry.success {
+            color: #388e3c;
+        }
+
+        .live-tail-entry.warning {
+            color: #f57c00;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .result-item {
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            input[type="text"] {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .result-item {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+
+            .result-label {
+                font-size: 11px;
+                padding: 5px 0;
+            }
+
+            .result-value {
+                font-size: 12px;
+                word-break: break-word;
+            }
+        }
+
+        /* Status Overlay & Tags */
+        #statusOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+
+        #statusOverlay .spinner {
+            width: 50px;
+            height: 50px;
+            border-width: 4px;
+            border-color: #ddd;
+            border-top-color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .status-text {
+            font-size: 1.5em;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .status-subtext {
+            font-size: 1em;
+            color: #666;
+        }
+
+        .status-tag {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #eee;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .status-tag.ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="statusOverlay">
+        <div class="spinner"></div>
+        <div class="status-text">Warming up engines...</div>
+        <div class="status-subtext">Connecting securely to Richmond portal</div>
+    </div>
+
+    <div class="container">
+        <h1>🎓 Richmond Token Checker</h1>
+        <p class="subtitle">Verify access codes v2</p>
+
+        <div id="systemStatus" class="status-tag">
+            Initializing connection...
+        </div>
+
+        <form id="tokenForm">
+            <div class="form-group">
+                <label for="accessCode">Access Code:</label>
+                <input type="text" id="accessCode" name="accessCode" placeholder="Enter your access code..." required
+                    disabled>
+            </div>
+
+            <button type="submit" id="submitBtn" disabled>
+                <span id="btnText">🔍 Check Access Code</span>
+            </button>
+        </form>
+
+        <div class="results" id="results">
+            <h2>Results:</h2>
+            <div id="resultsContent"></div>
+        </div>
+
+        <div class="live-tail">
+            <div class="live-tail-header">📡 Live Tail - visor de procesos en tiempo real</div>
+            <div id="liveTail"></div>
+        </div>
+
+        <div class="footer">
+            developed by <a href="https://github.com/yepzhi" target="_blank">@yepzhi</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('tokenForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const resultsDiv = document.getElementById('results');
+        const resultsContent = document.getElementById('resultsContent');
+        const accessCodeInput = document.getElementById('accessCode');
+        const statusOverlay = document.getElementById('statusOverlay');
+        const systemStatus = document.getElementById('systemStatus');
+
+        let isReady = false;
+
+        // Poll for ready status
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                if (data.ready) {
+                    if (!isReady) {
+                        isReady = true;
+                        // Enable UI
+                        statusOverlay.style.opacity = '0';
+                        setTimeout(() => statusOverlay.style.display = 'none', 500);
+
+                        systemStatus.className = 'status-tag ready';
+                        systemStatus.innerHTML = '✅ System Ready - Connected securely';
+
+                        accessCodeInput.disabled = false;
+                        submitBtn.disabled = false;
+                        accessCodeInput.focus();
+                    }
+                } else {
+                    isReady = false;
+                    systemStatus.innerHTML = `🔄 System Initializing... (${data.page || 'Starting'})`;
+                    // If we lost connection, maybe show overlay again? 
+                    // For now let's just update the status tag to avoid being too annoying if it's a temp glitch
+                }
+            } catch (e) {
+                console.error('Status check failed', e);
+            }
+        }
+
+        // Start polling
+        setInterval(checkSystemStatus, 2000);
+        checkSystemStatus(); // Immediate check
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const accessCode = document.getElementById('accessCode').value.trim();
+
+            if (!accessCode) {
+                resultsContent.innerHTML = '<div class="error">Please enter an access code</div>';
+                resultsDiv.classList.add('show');
+                return;
+            }
+
+            // Limpiar Live Tail
+            document.getElementById('liveTail').innerHTML = '';
+
+            // Disable button and show spinner
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span>Checking...';
+            resultsDiv.classList.remove('show');
+
+            // Iniciar actualización de logs
+            const logInterval = setInterval(updateLogs, 500);
+
+            try {
+                const response = await fetch('/api/check-access-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accessCode })
+                });
+
+                clearInterval(logInterval);
+                updateLogs(); // Última actualización
+
+                const result = await response.json();
+
+                // Re-enable button
+                submitBtn.disabled = false;
+                btnText.innerHTML = '🔍 Check Access Code';
+
+                if (response.ok) {
+                    let html = '';
+
+                    if (result.valid) {
+                        // ✅ Código encontrado - Mostrar datos
+                        html = '<div class="success" style="background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 3px;">✅ ' + escapeHtml(result.message) + '</div>';
+
+                        if (result.data) {
+                            html += '<div class="result-item" style="margin-top: 15px;">';
+                            html += '<div class="result-label">Access Code</div>';
+                            html += '<div class="result-value"><strong>' + escapeHtml(result.data.accessCode) + '</strong></div>';
+                            html += '</div>';
+
+                            if (result.data.results && result.data.results.length > 0) {
+                                result.data.results.forEach((item, idx) => {
+                                    html += '<div class="result-item" style="margin-top: 15px;">';
+                                    html += '<div class="result-label">📋 Access Code Information</div>';
+                                    html += '<div style="background: white; border-radius: 5px; padding: 15px; border: 1px solid #eee;">';
+
+                                    Object.entries(item).forEach(([key, value]) => {
+                                        let displayValue = value;
+                                        const keyLower = key.toLowerCase();
+
+                                        // APLICA EL ENMASCARAMIENTO (si lo necesitas)
+                                        // if (keyLower === 'name') {
+                                        //     displayValue = maskName(value);
+                                        // }
+
+                                        html += '<div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; align-items: start;">';
+                                        html += '<strong style="color: #667eea; word-break: break-word;">' + escapeHtml(key) + ':</strong>';
+                                        html += '<span style="word-break: break-word; white-space: normal;">' + escapeHtml(String(displayValue)) + '</span>';
+                                        html += '</div>';
+                                    });
+
+                                    // Quitar el último borde
+                                    html = html.replace(/(border-bottom: 1px solid #eee; align-items: start;">)(?![\s\S]*\1)/, 'padding: 12px 0; align-items: start;">');
+
+                                    html += '</div>';
+                                    html += '</div>';
+                                });
+                            }
+                        }
+                    } else {
+                        // ❌ Código no encontrado - Mostrar mensaje de "no válido"
+                        html = '<div class="error" style="background: #ffebee; border-left: 4px solid #d32f2f; color: #c62828; padding: 12px; border-radius: 3px;">';
+                        html += '<strong style="font-size: 16px;">❌ ' + escapeHtml(result.message) + '</strong>';
+                        html += '</div>';
+                    }
+
+                    resultsContent.innerHTML = html; // <-- SOLO ASIGNAMOS EL HTML BUENO
+
+                } else {
+                    // ¡AQUÍ MANEJAMOS EL ERROR!
+                    // Si la respuesta NO fue "ok" (ej. 404, 500)
+                    resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(result.message || 'Unknown server error') + '</div>';
+                }
+
+                resultsDiv.classList.add('show'); // <-- Esto siempre se ejecuta para mostrar el div
+
+            } catch (error) {
+                submitBtn.disabled = false;
+                btnText.innerHTML = '🔍 Check Access Code';
+                console.error('Fetch error:', error);
+                resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(error.message) + '</div>';
+                resultsDiv.classList.add('show');
+            }
+        });
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function updateLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                const liveTailDiv = document.getElementById('liveTail');
+
+                if (data.logs && data.logs.length > 0) {
+                    // Mostrar solo el último log
+                    const lastLog = data.logs[data.logs.length - 1];
+
+                    let className = '';
+                    if (lastLog.includes('❌') || lastLog.includes('Error')) className = 'error';
+                    else if (lastLog.includes('✅')) className = 'success';
+                    else if (lastLog.includes('⚠️')) className = 'warning';
+
+                    liveTailDiv.innerHTML = `<div class="live-tail-entry ${className}">${escapeHtml(lastLog)}</div>`;
+                }
+            } catch (e) {
+                // Silenciar errores de logs
+            }
+        }
+
+        function maskEmail(email) {
+            if (!email || !email.includes('@')) return email;
+            const [local, domain] = email.split('@');
+            if (local.length <= 2) return email;
+            const masked = local[0] + '*'.repeat(Math.max(3, local.length - 2)) + local[local.length - 1];
+            return masked + '@' + domain;
+        }
+
+        function maskName(name) {
+            if (!name || name.length <= 3) return name;
+            const parts = name.split(' ');
+            return parts.map(part => {
+                if (part.length <= 2) return part;
+                return part[0] + '*'.repeat(Math.max(2, part.length - 2)) + part[part.length - 1];
+            }).join(' ');
+        }
+    </script>
+</body>
+
+</html>

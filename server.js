@@ -1,0 +1,468 @@
+const express = require('express');
+const path = require('path');
+// Use playwright-extra instead of standard playwright
+const { chromium } = require('playwright-extra');
+const stealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Apply the stealth plugin
+chromium.use(stealthPlugin());
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
+
+let browser;
+let page;
+let logBuffer = []; // Buffer para guardar logs
+let isSystemReady = false; // Flag para indicar si el sistema está listo
+let lastActivityTime = Date.now();
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+// Función para guardar logs
+function addLog(message) {
+  const timestamp = new Date().toLocaleTimeString();
+  const logEntry = `${timestamp} ${message}`;
+  logBuffer.push(logEntry);
+  // Mantener solo los últimos 100 logs
+  if (logBuffer.length > 100) {
+    logBuffer.shift();
+  }
+}
+
+// Guardar el console.log original ANTES de sobrescribirlo
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+// Override console methods sin crear loops
+console.log = function (...args) {
+  const message = args.join(' ');
+  originalLog.apply(console, args);
+  addLog(message);
+};
+
+console.error = function (...args) {
+  const message = args.join(' ');
+  originalError.apply(console, args);
+  addLog(message);
+};
+
+console.warn = function (...args) {
+  const message = args.join(' ');
+  originalWarn.apply(console, args);
+  addLog(message);
+};
+
+// Configuración dinámica
+const LOGIN_URL = 'https://richmondlp.com/login';
+const ADMIN_URL = 'https://richmondlp.com/admin';
+const USER = 'mramirez@richmondelt.com';
+const PASS = 'Pass2026*';
+
+// Detectar entorno
+const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || process.env.SPACE_ID;
+console.log(`🔧 Entorno: ${isProd ? 'PRODUCCIÓN (Cloud/HF)' : 'LOCAL'}`);
+
+// Check if session is expired
+async function checkSessionTimeout() {
+  const now = Date.now();
+  if (browser && (now - lastActivityTime > SESSION_TIMEOUT_MS)) {
+    console.log('⏱️ Session timed out (15m inactivity). Restarting browser...');
+    try {
+      await browser.close();
+    } catch (e) { }
+    browser = null;
+    page = null;
+    isSystemReady = false;
+    return true; // Timeout occurred
+  }
+  return false;
+}
+
+// 🚀 Inicializa navegador y hace login con retry automático
+async function initBrowser(retryCount = 0) {
+  const MAX_RETRIES = 3;
+  isSystemReady = false; // Reset ready flag on init
+  lastActivityTime = Date.now();
+
+  try {
+    console.log('🌐 Iniciando Chromium (Stealth Mode)...');
+
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (e) { }
+    }
+
+    const launchOptions = {
+      headless: isProd,
+      slowMo: isProd ? 100 : 50,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1920,1080'
+      ]
+    };
+
+    browser = await chromium.launch(launchOptions);
+
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 },
+      locale: 'en-US',
+      timezoneId: 'America/New_York',
+      permissions: ['geolocation']
+    });
+
+    page = await context.newPage();
+
+    console.log('📡 Navegando a login...');
+    await page.goto(LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForTimeout(2000 + Math.random() * 1000);
+
+    console.log('📍 Esperando campo de usuario...');
+    await page.waitForSelector('#identifier', { timeout: 90000 });
+    await page.waitForTimeout(1000 + Math.random() * 1000);
+
+    console.log('📍 Llenando correo...');
+    await page.click('#identifier');
+    await page.waitForTimeout(300);
+    await page.type('#identifier', USER, { delay: 100 + Math.random() * 100 });
+    await page.waitForTimeout(800 + Math.random() * 400);
+
+    console.log('📍 Llenando contraseña...');
+    await page.click('#password');
+    await page.waitForTimeout(300);
+    await page.type('#password', PASS, { delay: 100 + Math.random() * 100 });
+    await page.waitForTimeout(1000 + Math.random() * 500);
+
+    console.log('📍 Haciendo click en botón Sign in...');
+    await page.click('button:has-text("Sign in")');
+
+    console.log('📍 Esperando que cargue el dashboard...');
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
+    await page.waitForTimeout(3000);
+
+    const currentUrl = page.url();
+    console.log(`📍 URL actual después de login: ${currentUrl}`);
+
+    if (currentUrl.includes('login') || currentUrl.includes('error')) {
+      throw new Error('Login falló - redirigido a página de login o error');
+    }
+
+    console.log('✅ Login exitoso!');
+    await page.waitForTimeout(3000 + Math.random() * 1000);
+
+    console.log('📍 Validando sesión en Admin...');
+    try {
+      await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForTimeout(2000);
+
+      const adminUrl = page.url();
+      if (adminUrl.includes('login') || adminUrl.includes('error')) {
+        throw new Error('Sesión no válida en Admin');
+      }
+
+      console.log('✅ Sesión persistente validada en Admin');
+      isSystemReady = true;
+      lastActivityTime = Date.now();
+    } catch (e) {
+      console.warn('⚠️ Error validando sesión:', e.message);
+      throw e;
+    }
+
+  } catch (error) {
+    console.error(`❌ Error en initBrowser (intento ${retryCount + 1}/${MAX_RETRIES}):`, error.message);
+    try { if (browser) await browser.close(); } catch (e) { }
+    browser = null;
+    page = null;
+
+    if (retryCount < MAX_RETRIES) {
+      const waitTime = (retryCount + 1) * 5000;
+      console.log(`🔄 Reintentando en ${waitTime / 1000} segundos...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return initBrowser(retryCount + 1);
+    }
+    throw error;
+  }
+}
+
+// 🔧 Masking function
+function maskName(name) {
+  if (!name) return name;
+  return name.split(' ').map(part => {
+    if (part.length <= 4) return part[0] + '**' + part.slice(-1);
+    return part.slice(0, 2) + '**' + part.slice(-2);
+  }).join(' ');
+}
+
+function smartMaskCell(header, value) {
+  if (!value) return value;
+  const lower = header.toLowerCase();
+  if (lower.includes('name') && !lower.includes('institution')) {
+    return maskName(value);
+  }
+  return value;
+}
+
+// Helper search function to reuse across frames
+const findButtonInScope = async (scope, scopeName) => {
+  console.log(`🔍 Buscando en ${scopeName}...`);
+
+  // 1. Check strict ID/Selector
+  let btn = await scope.$('#check-token-button');
+  if (btn) return { btn, method: 'ID' };
+
+  btn = await scope.$('a[href*="#check-token"]');
+  if (btn) return { btn, method: 'href' };
+
+  // 2. Check all button/a tag texts
+  const elements = await scope.$$('button, a, input[type="submit"], div[role="button"]');
+  // console.log(`   found ${elements.length} clickable elements in ${scopeName}`);
+
+  for (const el of elements) {
+    try {
+      const isVisible = await el.isVisible();
+      if (!isVisible) continue;
+
+      const text = (await el.innerText()).trim().toLowerCase();
+      if (text.includes('check') || text.includes('verify') || text.includes('validar') || text.includes('access')) {
+        return { btn: el, method: `textMatch: "${text}"` };
+      }
+    } catch (e) { }
+  }
+  return null;
+};
+
+// 🔍 Endpoint principal: buscar access code
+app.post('/api/check-access-code', async (req, res) => {
+  const { accessCode } = req.body;
+  if (!accessCode) {
+    return res.status(400).json({ valid: false, message: 'No access code provided' });
+  }
+
+  try {
+    // 1. Check timeout / Validar sesión
+    await checkSessionTimeout();
+    lastActivityTime = Date.now(); // update activity
+
+    if (!page || page.isClosed()) {
+      console.log('🔄 Sesión inactiva o cerrada. Iniciando nueva...');
+      await initBrowser();
+    }
+
+    // 2. Navegación inteligente
+    console.log(`🔍 Buscando Access Code: ${accessCode}`);
+    const currentUrl = page.url();
+
+    // Si NO estamos en admin, ir a admin
+    if (!currentUrl.includes('/admin')) {
+      console.log('📍 Navegando a Admin...');
+      await page.goto(ADMIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } else {
+      console.log('📍 Ya estamos en Admin, reutilizando sesión...');
+    }
+
+    // 3. Resetear UI si es necesario (Manage Access Codes)
+    // Always check if the specific input is VISIBLE first
+    let input = await page.$('#token_input_token');
+    let isInputVisible = input ? await input.isVisible() : false;
+
+    if (!isInputVisible) {
+      console.log('📍 Input no visible, asegurando pestaña Manage Access Codes...');
+
+      // Force click / navigation to ensuring we are in the right tab
+      const links = await page.$$('a[href="#manage-access-codes"]');
+      if (links.length > 0) {
+        console.log('   Clicking Manage Access Codes tab...');
+        try {
+          await links[0].click({ timeout: 5000 });
+          await page.waitForTimeout(1000);
+        } catch (e) {
+          console.log('   Click failed, trying JS click');
+          await page.evaluate(l => l.click(), links[0]);
+        }
+      } else {
+        // force navigation via URL hash if tab not found
+        console.log('   Tab not found, forcing URL navigation...');
+        await page.goto(`${ADMIN_URL}#manage-access-codes`, { waitUntil: 'networkidle', timeout: 60000 });
+      }
+      await page.waitForTimeout(2000);
+    }
+
+    // 4. Buscar input nuevamente (More Robust)
+    console.log('📍 Buscando campo de entrada...');
+
+    // Intento 1: Por ID exacto + Visible Check
+    input = await page.$('#token_input_token');
+    if (input && !(await input.isVisible())) input = null; // Discard if not visible
+
+    // Intento 2: Recursive fallback finding FIRST VISIBLE input
+    if (!input) {
+      console.log('   Input ID hidden/missing, searching alternatives...');
+      const allInputs = await page.$$('input[type="text"]');
+      for (let i = allInputs.length - 1; i >= 0; i--) {
+        if (await allInputs[i].isVisible()) {
+          input = allInputs[i];
+          console.log('   Found visible input alternative');
+          break;
+        }
+      }
+    }
+
+    if (!input) {
+      console.error('❌ No se encontró el input');
+      // Dump HTML if desperate
+      return res.status(500).json({ valid: false, message: 'Input field not found' });
+    }
+
+    // Scroll into view
+    try { await input.scrollIntoViewIfNeeded(); } catch (e) { }
+
+    // 5. Llenar form
+    console.log('📍 Ingresando código...');
+    await input.fill('');
+    await page.waitForTimeout(300);
+    await input.fill(accessCode);
+    await page.waitForTimeout(300);
+
+    // 6. Buscar botón de Check (usa la funcion inteligente)
+    console.log('📍 Buscando botón de verificación...');
+    let button = null;
+
+    // Search Main + Frames
+    let searchResult = await findButtonInScope(page, 'Main Page');
+    if (!searchResult) {
+      const frames = page.frames();
+      for (let i = 0; i < frames.length; i++) {
+        searchResult = await findButtonInScope(frames[i], `Frame[${i}]`);
+        if (searchResult) break;
+      }
+    }
+
+    if (searchResult) {
+      button = searchResult.btn;
+      console.log(`✅ Botón encontrado via ${searchResult.method}`);
+    } else {
+      console.error('❌ Botón NO encontrado.');
+      // Dump HTML logic kept simple here
+      return res.status(500).json({ valid: false, message: 'Check button not found' });
+    }
+
+    await button.click({ timeout: 15000 });
+    console.log('📍 Esperando resultados...');
+    await page.waitForTimeout(3000);
+
+    // 7. Extraer resultados
+    // Esperar tabla...
+    try {
+      await page.waitForSelector('#manage-access-codes table tbody tr', { timeout: 10000 });
+    } catch (e) { }
+
+    const resultInfo = await page.evaluate(() => {
+      // Misma logica de extraccion de tablas...
+      const table = document.querySelector('#manage-access-codes table');
+      // Fallback a cualquier tabla visible
+      const targetTable = table || Array.from(document.querySelectorAll('table')).reverse().find(t => t.getBoundingClientRect().height > 0);
+
+      if (!targetTable) return { found: false, rows: [], headers: [] };
+
+      const headers = Array.from(targetTable.querySelectorAll('thead th, tr:first-child th'))
+        .map(th => th.innerText.trim()).filter(h => h.length > 0);
+
+      const rows = Array.from(targetTable.querySelectorAll('tbody tr'))
+        .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()))
+        .filter(row => row.length > 0 && !row.some(cell => cell.toLowerCase().includes('no result')));
+
+      return { found: rows.length > 0, headers: headers.length ? headers : ['Data'], rows };
+    });
+
+    lastActivityTime = Date.now(); // Update activity on success
+
+    if (!resultInfo.found || resultInfo.rows.length === 0) {
+      return res.json({
+        valid: false,
+        message: 'No se encontraron resultados (Código inválido o no usado)',
+        data: { accessCode }
+      });
+    }
+
+    // Masking
+    const results = resultInfo.rows.map(row => {
+      const obj = {};
+      resultInfo.headers.forEach((h, i) => {
+        const val = row[i];
+        obj[h] = smartMaskCell(h, val);
+      });
+      return obj;
+    });
+
+    res.json({
+      valid: true,
+      message: 'Access code found successfully ✅',
+      data: { accessCode, headers: resultInfo.headers, results }
+    });
+
+    console.log('✅ Búsqueda finalizada. Sesión mantenida activa.');
+    // NO cerramos el navegador aqui.
+
+  } catch (err) {
+    console.error('❌ Error en check-access-code:', err.message);
+    // En caso de error fatal, quizas si reiniciar:
+    if (err.message.includes('closed') || err.message.includes('crash')) {
+      try { if (browser) await browser.close(); } catch (e) { }
+      browser = null;
+    }
+
+    res.status(500).json({ valid: false, message: err.message });
+  }
+});
+
+// Endpoint para obtener logs en tiempo real
+app.get('/api/logs', (req, res) => {
+  res.json({ logs: logBuffer });
+});
+
+app.get('/api/status', async (req, res) => {
+  // Check timeout on status poll too
+  if (isSystemReady) await checkSessionTimeout();
+
+  const status = {
+    server: 'OK ✅',
+    browser: browser ? 'Initialized ✅' : 'Not initialized ❌',
+    page: page && !page.isClosed() ? 'Active ✅' : 'Closed ❌',
+    ready: isSystemReady
+  };
+  res.json(status);
+});
+
+// Ruta principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Cerrar navegador al terminar proceso
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Cerrando navegador...');
+  if (browser) await browser.close();
+  process.exit(0);
+});
+
+// Iniciar servidor
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => {
+  console.log(`\n🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+});
+
+// Inicializar navegador al inicio
+server.on('listening', async () => {
+  console.log('✅ Servidor HTTP listo, iniciando navegador...');
+  try {
+    await initBrowser();
+    console.log('✅ Sistema completamente listo\n');
+  } catch (error) {
+    console.error('❌ Error al inicializar navegador:', error.message);
+  }
+});
