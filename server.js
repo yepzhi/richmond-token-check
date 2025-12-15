@@ -450,17 +450,23 @@ app.get('/api/logs', (req, res) => {
   res.json({ logs: logBuffer });
 });
 
-app.get('/api/status', async (req, res) => {
-  if (isSystemReady) await checkSessionTimeout();
-  // Queue length info debugging
+app.get('/api/status', (req, res) => {
+  // Return status immediately without blocking on browser actions
   const queueLength = browserQueue.queue.length;
+
+  // Optional: Trigger a background check if seemingly idle but expired
+  // but do NOT await it here.
+  if (isSystemReady && (Date.now() - lastActivityTime > SESSION_TIMEOUT_MS)) {
+    // Trigger background cleanup if needed, but don't block response
+    checkSessionTimeout().catch(err => console.error('Background timeout check failed:', err));
+  }
 
   const status = {
     server: 'OK ✅',
     browser: browser ? 'Initialized ✅' : 'Not initialized ❌',
     page: page && !page.isClosed() ? 'Active ✅' : 'Closed ❌',
     ready: isSystemReady,
-    queue: queueLength // Inform UI about load
+    queue: queueLength
   };
   res.json(status);
 });
