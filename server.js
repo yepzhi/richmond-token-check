@@ -13,8 +13,9 @@ const app = express();
 // Enable CORS for ANY origin (since we want yepzhi.com and others to access it)
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false // Disable credentials to allow wildcard origin
 }));
 
 app.use(express.json());
