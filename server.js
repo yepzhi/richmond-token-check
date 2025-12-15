@@ -107,7 +107,7 @@ const USER = 'mramirez@richmondelt.com';
 const PASS = 'Pass2026*';
 
 // Detectar entorno
-const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || process.env.SPACE_ID;
+const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.SPACE_ID;
 console.log(`🔧 Entorno: ${isProd ? 'PRODUCCIÓN (Cloud/HF)' : 'LOCAL'}`);
 
 // Check if session is expired
