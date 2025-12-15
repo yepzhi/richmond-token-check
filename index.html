@@ -1,549 +1,460 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ricardo Access Code Checker</title>
+    <title>Richmond Token Checker | Yepzhi Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Modern Dark Theme - Responsive */
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #238636;
+            --accent-glow: rgba(35, 134, 54, 0.3);
+            --border: #30363d;
+            --warning: #d29922;
+            --error: #f85149;
+            --info: #58a6ff;
+            --success: #3fb950;
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             padding: 20px;
         }
 
+        /* === RESPONSIVE CONTAINER === */
         .container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
             width: 100%;
-            padding: 40px;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* === HEADER === */
+        header {
+            text-align: center;
+            padding-top: 20px;
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 10px;
-            text-align: center;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff, #a371f7, #d2a8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-top: 8px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            color: #333;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .results {
-            margin-top: 30px;
+        /* === STATUS CARD (THE BIG VISIBLE ONE) === */
+        .status-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
             padding: 20px;
-            background: #f5f5f5;
-            border-radius: 5px;
-            display: none;
-        }
-
-        .results.show {
-            display: block;
-        }
-
-        .results h2 {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-
-        .result-item {
-            background: white;
-            padding: 12px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
-            border-radius: 3px;
-            overflow-x: auto;
-        }
-
-        .result-label {
-            color: #666;
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .result-value {
-            color: #333;
-            word-break: break-all;
-        }
-
-        .error {
-            color: #d32f2f;
-            padding: 12px;
-            background: #ffebee;
-            border-left: 4px solid #d32f2f;
-            border-radius: 3px;
-            margin-top: 20px;
-        }
-
-        .footer {
-            margin-top: 40px;
-            text-align: right;
-            color: #999;
-            font-size: 11px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        .live-tail {
-            margin-top: 30px;
-            background: #f5f5f5;
-            color: #333;
-            padding: 15px;
-            border-radius: 5px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            font-size: 13px;
-            min-height: 60px;
-            max-height: 80px;
-            border: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .live-tail-header {
-            color: #667eea;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .live-tail-entry {
-            margin: 0;
-            padding: 0;
-            color: #555;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .live-tail-entry.error {
-            color: #d32f2f;
-        }
-
-        .live-tail-entry.success {
-            color: #388e3c;
-        }
-
-        .live-tail-entry.warning {
-            color: #f57c00;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            button {
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            .result-item {
-                padding: 10px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-
-            .container {
-                padding: 15px;
-                border-radius: 8px;
-            }
-
-            h1 {
-                font-size: 20px;
-            }
-
-            input[type="text"] {
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            button {
-                padding: 10px;
-                font-size: 13px;
-            }
-
-            .result-item {
-                padding: 8px;
-                margin-bottom: 8px;
-            }
-
-            .result-label {
-                font-size: 11px;
-                padding: 5px 0;
-            }
-
-            .result-value {
-                font-size: 12px;
-                word-break: break-word;
-            }
-        }
-
-        /* Status Overlay & Tags */
-        #statusOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s;
-        }
-
-        #statusOverlay .spinner {
-            width: 50px;
-            height: 50px;
-            border-width: 4px;
-            border-color: #ddd;
-            border-top-color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .status-text {
-            font-size: 1.5em;
-            color: #333;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .status-subtext {
-            font-size: 1em;
-            color: #666;
-        }
-
-        .status-tag {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #eee;
-            border-radius: 4px;
-            font-size: 0.9em;
-            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .status-card.ready {
+            border-color: var(--success);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .status-card.warming {
+            border-color: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        .status-card.offline {
+            border-color: var(--error);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .status-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .status-detail {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* === STEPS PROGRESS === */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            gap: 8px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px 4px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            border: 1px solid transparent;
             transition: all 0.3s;
         }
 
-        color: #2e7d32;
-        border: 1px solid #c8e6c9;
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .step.done {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .step-icon {
+            font-size: 1.2rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* === SEARCH CARD === */
+        .search-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+            .input-group {
+                flex-direction: row;
+            }
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--info);
+        }
+
+        button {
+            padding: 14px 24px;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* === RESULTS === */
+        #results {
+            margin-top: 16px;
+        }
+
+        .result-box {
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+
+        .result-box.success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .result-box.error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .result-box.info {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+
+        /* === TABLE === */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        /* === FOOTER === */
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        footer a {
+            color: var(--info);
+            text-decoration: none;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>🎓 Richmond Token Checker</h1>
-        <p class="subtitle">Verify access codes v2</p>
+        <header>
+            <h1>🎓 Richmond Token Checker</h1>
+            <p class="subtitle">Verify access codes securely</p>
+        </header>
 
-        <div id="systemStatus" class="status-tag">
-            Initializing connection...
-        </div>
+        <!-- Big Status Card -->
+        <div id="statusCard" class="status-card warming">
+            <div class="status-icon">🚀</div>
+            <div class="status-title">Initializing Connection...</div>
+            <div class="status-detail">Connecting to secure backend server</div>
 
-        <form id="tokenForm">
-            <div class="form-group">
-                <label for="accessCode">Access Code:</label>
-                <input type="text" id="accessCode" name="accessCode" placeholder="Enter your access code..." required
-                    disabled>
+            <div class="steps">
+                <div class="step active" id="step1"><span class="step-icon">🔌</span> Connect</div>
+                <div class="step" id="step2"><span class="step-icon">🔐</span> Login</div>
+                <div class="step" id="step3"><span class="step-icon">✅</span> Ready</div>
             </div>
-
-            <button type="submit" id="submitBtn" disabled>
-                <span id="btnText">🔍 Check Access Code</span>
-            </button>
-        </form>
-
-        <div class="results" id="results">
-            <h2>Results:</h2>
-            <div id="resultsContent"></div>
         </div>
 
-        <div class="live-tail">
-            <div class="live-tail-header">📡 Live Tail - visor de procesos en tiempo real</div>
-            <div id="liveTail"></div>
-        </div>
-
-        <div class="footer">
-            developed by <a href="https://github.com/yepzhi" target="_blank">@yepzhi</a>
+        <!-- Search Card -->
+        <div class="search-card">
+            <div class="input-group">
+                <input type="text" id="accessCode" placeholder="Enter Access Code (e.g. 784512...)" autocomplete="off">
+                <button id="checkBtn">Check Code</button>
+            </div>
+            <div id="results"></div>
         </div>
     </div>
 
-    <!-- UI Logic -->
+    <footer>
+        <a href="https://yepzhi.com">← Back to Yepzhi.com</a> | Powered by Hugging Face Spaces
+    </footer>
+
     <script>
+        // ============ CONFIGURATION ============
+        // Relative path because this is hosted on the server itself
+        const API_BASE = '';
+
+        // ============ DOM ELEMENTS ============
+        const statusCard = document.getElementById('statusCard');
+        const statusIcon = statusCard.querySelector('.status-icon');
+        const statusTitle = statusCard.querySelector('.status-title');
+        const statusDetail = statusCard.querySelector('.status-detail');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const checkBtn = document.getElementById('checkBtn');
+        const input = document.getElementById('accessCode');
+        const results = document.getElementById('results');
+
+        let isReady = false;
+        let pollFails = 0;
+
+        // ============ STATUS POLLING ============
+        async function pollStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(8000) });
+                const data = await res.json();
+                pollFails = 0; // Reset fail counter
+
+                if (data.ready) {
+                    // READY STATE
+                    isReady = true;
+                    statusCard.className = 'status-card ready';
+                    statusIcon.textContent = '✅';
+                    statusTitle.textContent = 'System Online & Ready';
+                    statusDetail.textContent = data.queue > 0 ? `${data.queue} request(s) in queue` : 'No queue, instant results!';
+                    step1.className = 'step done';
+                    step2.className = 'step done';
+                    step3.className = 'step done';
+                    checkBtn.disabled = false;
+                } else {
+                    // WARMING STATE
+                    isReady = false;
+                    statusCard.className = 'status-card warming';
+                    statusIcon.textContent = '🔄';
+                    statusTitle.textContent = 'System Warming Up...';
+                    statusDetail.textContent = 'Browser is logging in. Please wait ~30s.';
+                    step1.className = 'step done';
+                    step2.className = 'step active';
+                    step3.className = 'step';
+                    // Keep button enabled so user can queue request
+                    checkBtn.disabled = false;
+                }
+            } catch (e) {
+                pollFails++;
+                if (pollFails >= 3) {
+                    // OFFLINE STATE
+                    isReady = false;
+                    statusCard.className = 'status-card offline';
+                    statusIcon.textContent = '😴';
+                    statusTitle.textContent = 'Server Sleeping';
+                    statusDetail.innerHTML = 'Hugging Face Space is paused.<br><button onclick="wakeUp()" style="margin-top:10px; padding:8px 16px; background:#d29922; border:none; border-radius:6px; color:white; cursor:pointer;">⚡ Wake Up Server</button>';
+                    step1.className = 'step active';
+                    step2.className = 'step';
+                    step3.className = 'step';
+                    checkBtn.disabled = false;
+                }
             }
         }
 
-        // Start polling
-        setInterval(checkSystemStatus, 2000);
-        checkSystemStatus(); // Immediate check
+        async function wakeUp() {
+            try {
+                statusDetail.innerHTML = 'Sending Wake-Up Signal... 📡<br><small>Please wait ~60 seconds...</small>';
+                // Use no-cors to force the request through even if CORS headers are missing during boot
+                await fetch(API_BASE, { mode: 'no-cors' });
+                pollFails = 0; // Reset fails to trigger loading state on next poll
+            } catch (e) {
+                console.log('Wake up signal sent (blind)');
+            }
+        }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Poll every 4s
+        setInterval(pollStatus, 4000);
+        pollStatus();
 
-            const accessCode = document.getElementById('accessCode').value.trim();
+        // ============ CHECK CODE ============
+        checkBtn.addEventListener('click', checkCode);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkCode(); });
 
-            if (!accessCode) {
-                resultsContent.innerHTML = '<div class="error">Please enter an access code</div>';
-                resultsDiv.classList.add('show');
+        async function checkCode() {
+            const code = input.value.trim();
+            if (!code) {
+                results.innerHTML = '<div class="result-box error">⚠️ Please enter an access code.</div>';
                 return;
             }
 
-            // Limpiar Live Tail
-            document.getElementById('liveTail').innerHTML = '';
-
-            // Disable button and show spinner
-            submitBtn.disabled = true;
-            btnText.innerHTML = '<span class="spinner"></span>Checking...';
-            resultsDiv.classList.remove('show');
-
-            // Iniciar actualización de logs
-            const logInterval = setInterval(updateLogs, 500);
+            // UI Loading State
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Searching...';
+            results.innerHTML = '<div class="result-box info">🔎 Searching secure database...<br><small>You may be in queue if others are searching.</small></div>';
 
             try {
-                const response = await fetch('/api/check-access-code', {
+                const res = await fetch(`${API_BASE}/api/check-access-code`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ accessCode })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessCode: code })
                 });
 
-                clearInterval(logInterval);
-                updateLogs(); // Última actualización
+                const data = await res.json();
 
-                const result = await response.json();
+                if (data.valid) {
+                    let html = '<div class="result-box success">✅ Access Code Found!</div>';
 
-                // Re-enable button
-                submitBtn.disabled = false;
-                btnText.innerHTML = '🔍 Check Access Code';
-
-                if (response.ok) {
-                    let html = '';
-
-                    if (result.valid) {
-                        // ✅ Código encontrado - Mostrar datos
-                        html = '<div class="success" style="background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 3px;">✅ ' + escapeHtml(result.message) + '</div>';
-
-                        if (result.data) {
-                            html += '<div class="result-item" style="margin-top: 15px;">';
-                            html += '<div class="result-label">Access Code</div>';
-                            html += '<div class="result-value"><strong>' + escapeHtml(result.data.accessCode) + '</strong></div>';
-                            html += '</div>';
-
-                            if (result.data.results && result.data.results.length > 0) {
-                                result.data.results.forEach((item, idx) => {
-                                    html += '<div class="result-item" style="margin-top: 15px;">';
-                                    html += '<div class="result-label">📋 Access Code Information</div>';
-                                    html += '<div style="background: white; border-radius: 5px; padding: 15px; border: 1px solid #eee;">';
-
-                                    Object.entries(item).forEach(([key, value]) => {
-                                        let displayValue = value;
-                                        const keyLower = key.toLowerCase();
-
-                                        // APLICA EL ENMASCARAMIENTO (si lo necesitas)
-                                        // if (keyLower === 'name') {
-                                        //     displayValue = maskName(value);
-                                        // }
-
-                                        html += '<div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; align-items: start;">';
-                                        html += '<strong style="color: #667eea; word-break: break-word;">' + escapeHtml(key) + ':</strong>';
-                                        html += '<span style="word-break: break-word; white-space: normal;">' + escapeHtml(String(displayValue)) + '</span>';
-                                        html += '</div>';
-                                    });
-
-                                    // Quitar el último borde
-                                    html = html.replace(/(border-bottom: 1px solid #eee; align-items: start;">)(?![\s\S]*\1)/, 'padding: 12px 0; align-items: start;">');
-
-                                    html += '</div>';
-                                    html += '</div>';
-                                });
-                            }
-                        }
-                    } else {
-                        // ❌ Código no encontrado - Mostrar mensaje de "no válido"
-                        html = '<div class="error" style="background: #ffebee; border-left: 4px solid #d32f2f; color: #c62828; padding: 12px; border-radius: 3px;">';
-                        html += '<strong style="font-size: 16px;">❌ ' + escapeHtml(result.message) + '</strong>';
-                        html += '</div>';
+                    if (data.data.results && data.data.results.length > 0) {
+                        html += '<div class="table-wrapper"><table><thead><tr>';
+                        data.data.headers.forEach(h => html += `<th>${h}</th>`);
+                        html += '</tr></thead><tbody>';
+                        data.data.results.forEach(r => {
+                            html += '<tr>';
+                            data.data.headers.forEach(h => html += `<td>${r[h] || '-'}</td>`);
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
                     }
-
-                    resultsContent.innerHTML = html; // <-- SOLO ASIGNAMOS EL HTML BUENO
-
+                    results.innerHTML = html;
                 } else {
-                    // ¡AQUÍ MANEJAMOS EL ERROR!
-                    // Si la respuesta NO fue "ok" (ej. 404, 500)
-                    resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(result.message || 'Unknown server error') + '</div>';
+                    results.innerHTML = `<div class="result-box error">❌ ${data.message}</div>`;
                 }
 
-                resultsDiv.classList.add('show'); // <-- Esto siempre se ejecuta para mostrar el div
-
-            } catch (error) {
-                submitBtn.disabled = false;
-                btnText.innerHTML = '🔍 Check Access Code';
-                console.error('Fetch error:', error);
-                resultsContent.innerHTML = '<div class="error">❌ Error: ' + escapeHtml(error.message) + '</div>';
-                resultsDiv.classList.add('show');
-            }
-        });
-
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        async function updateLogs() {
-            try {
-                const response = await fetch('/api/logs');
-                const data = await response.json();
-                const liveTailDiv = document.getElementById('liveTail');
-
-                if (data.logs && data.logs.length > 0) {
-                    // Mostrar solo el último log
-                    const lastLog = data.logs[data.logs.length - 1];
-
-                    let className = '';
-                    if (lastLog.includes('❌') || lastLog.includes('Error')) className = 'error';
-                    else if (lastLog.includes('✅')) className = 'success';
-                    else if (lastLog.includes('⚠️')) className = 'warning';
-
-                    liveTailDiv.innerHTML = `<div class="live-tail-entry ${className}">${escapeHtml(lastLog)}</div>`;
-                }
             } catch (e) {
-                // Silenciar errores de logs
+                results.innerHTML = '<div class="result-box error">⚠️ Connection error. The server may be waking up. Try again in 30 seconds.</div>';
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Code';
             }
-        }
-
-        function maskEmail(email) {
-            if (!email || !email.includes('@')) return email;
-            const [local, domain] = email.split('@');
-            if (local.length <= 2) return email;
-            const masked = local[0] + '*'.repeat(Math.max(3, local.length - 2)) + local[local.length - 1];
-            return masked + '@' + domain;
-        }
-
-        function maskName(name) {
-            if (!name || name.length <= 3) return name;
-            const parts = name.split(' ');
-            return parts.map(part => {
-                if (part.length <= 2) return part;
-                return part[0] + '*'.repeat(Math.max(2, part.length - 2)) + part[part.length - 1];
-            }).join(' ');
         }
     </script>
 </body>
