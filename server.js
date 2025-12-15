@@ -121,6 +121,10 @@ async function checkSessionTimeout() {
     browser = null;
     page = null;
     isSystemReady = false;
+
+    // Auto-restart immediately to keep system ready
+    initBrowser().catch(e => console.error('❌ Error restarting browser after timeout:', e));
+
     return true; // Timeout occurred
   }
   return false;
