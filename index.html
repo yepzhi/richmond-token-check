@@ -456,6 +456,54 @@
                 checkBtn.textContent = 'Check Code';
             }
         }
+
+        // ============ LIVE LOGS ============
+        const logsContainer = document.createElement('div');
+        logsContainer.innerHTML = `
+            <div style="margin-top: 20px; width: 100%; max-width: 640px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); overflow: hidden;">
+                <div id="logsHeader" style="padding: 10px 15px; background: #21262d; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; color: var(--text-dim);">
+                    <span>📡 Live Process Tail</span>
+                    <span id="logToggle">▼</span>
+                </div>
+                <div id="logsBody" style="display: none; padding: 10px; background: #0d1117; font-family: monospace; font-size: 0.75rem; color: #8b949e; height: 200px; overflow-y: auto;">
+                    <div style="color: var(--info);">Connecting to log stream...</div>
+                </div>
+            </div>
+        `;
+        document.querySelector('.container').appendChild(logsContainer);
+
+        const logsHeader = logsContainer.querySelector('#logsHeader');
+        const logsBody = logsContainer.querySelector('#logsBody');
+        const logToggle = logsContainer.querySelector('#logToggle');
+        let isLogsOpen = false;
+        let logInterval = null;
+
+        logsHeader.addEventListener('click', () => {
+            isLogsOpen = !isLogsOpen;
+            logsBody.style.display = isLogsOpen ? 'block' : 'none';
+            logToggle.textContent = isLogsOpen ? '▲' : '▼';
+
+            if (isLogsOpen) {
+                pollLogs();
+                logInterval = setInterval(pollLogs, 2000); // Fast poll when open
+            } else {
+                clearInterval(logInterval);
+            }
+        });
+
+        async function pollLogs() {
+            if (!isLogsOpen) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/logs`);
+                const data = await res.json();
+                if (data.logs && data.logs.length > 0) {
+                    logsBody.innerHTML = data.logs.map(l => `<div>${l}</div>`).join('');
+                    logsBody.scrollTop = logsBody.scrollHeight; // Auto scroll
+                }
+            } catch (e) {
+                logsBody.innerHTML += `<div style="color: var(--error);">Error fetching logs</div>`;
+            }
+        }
     </script>
 </body>
 
