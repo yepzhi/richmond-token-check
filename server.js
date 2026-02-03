@@ -172,13 +172,21 @@ async function initBrowser(retryCount = 0) {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
         'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"macOS"'
+        'Sec-Ch-Ua-Platform': '"macOS"',
+        'Referer': 'https://richmondlp.com/'
       }
     });
 
     page = await context.newPage();
 
+    console.log('📡 Navegando a HOME (Warmup)...');
+    try {
+      await page.goto('https://richmondlp.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(3000);
+    } catch (e) { console.log('   Warmup error (non-fatal):', e.message); }
+
     console.log('📡 Navegando a login...');
+    // Use goto or click if a login link exists
     await page.goto(LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForTimeout(2000 + Math.random() * 1000);
 
