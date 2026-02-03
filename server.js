@@ -3,9 +3,10 @@ const path = require('path');
 const cors = require('cors'); // Import CORS
 // Use playwright-extra instead of standard playwright
 const { firefox } = require('playwright-extra');
-// Firefox usually bypasses Chrome-specific WAFs without stealth plugin
-// const stealthPlugin = require('puppeteer-extra-plugin-stealth');
-// firefox.use(stealthPlugin());
+const stealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Apply the stealth plugin
+firefox.use(stealthPlugin());
 
 const app = express();
 
