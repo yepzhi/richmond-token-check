@@ -1,12 +1,8 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors'); // Import CORS
-// Use playwright-extra instead of standard playwright
-const { firefox } = require('playwright-extra');
-const stealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-// Apply the stealth plugin
-firefox.use(stealthPlugin());
+// Use vanilla playwright - stealth plugin removed to fix TypeError
+const { firefox } = require('playwright');
 
 const app = express();
 
