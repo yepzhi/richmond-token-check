@@ -214,6 +214,16 @@ async function initBrowser(retryCount = 0) {
       console.log('❌ Login seemingly failed. Taking screenshot...');
       await page.screenshot({ path: 'login_failed.png', fullPage: true });
 
+      // 📝 DUMP PAGE CONTENT TO LOGS (Critical for debugging on HF)
+      const pageText = await page.innerText('body');
+      console.log('📄 CONTENIDO DEL TEXTO DE LA PÁGINA (Ultimos 500 chars):');
+      console.log(pageText.slice(-500));
+
+      const pageHTML = await page.content();
+      console.log('📄 HTML SNIPPET (Title & H1):');
+      const title = await page.title();
+      console.log(`Title: ${title}`);
+
       // Check for specific on-screen errors
       const errorEl = await page.$('.alert-danger, .error-message, div[class*="error"]');
       if (errorEl) {
