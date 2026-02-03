@@ -190,18 +190,39 @@ async function initBrowser(retryCount = 0) {
     await page.type('#password', PASS, { delay: 100 + Math.random() * 100 });
     await page.waitForTimeout(1000 + Math.random() * 500);
 
-    console.log('📍 Haciendo click en botón Sign in...');
-    await page.click('button:has-text("Sign in")');
+    // HUMANIZATION: Move mouse randomly
+    await page.mouse.move(100 + Math.random() * 200, 200 + Math.random() * 200);
+
+    console.log('📍 Iniciando sesión (Estrategia: Enter Key)...');
+    try {
+      await page.keyboard.press('Enter');
+    } catch (e) {
+      console.log('   Enter falló, intentando click...');
+      await page.click('button:has-text("Sign in")');
+    }
 
     console.log('📍 Esperando que cargue el dashboard...');
-    await page.waitForLoadState('networkidle', { timeout: 60000 });
-    await page.waitForTimeout(3000);
+    // Increased timeout for slow redirects
+    await page.waitForLoadState('networkidle', { timeout: 90000 });
+    await page.waitForTimeout(5000);
 
     const currentUrl = page.url();
     console.log(`📍 URL actual después de login: ${currentUrl}`);
 
     if (currentUrl.includes('login') || currentUrl.includes('error')) {
-      throw new Error('Login falló - redirigido a página de login o error');
+      // 📸 CAPTURE ERROR STATE
+      console.log('❌ Login seemingly failed. Taking screenshot...');
+      await page.screenshot({ path: 'login_failed.png', fullPage: true });
+
+      // Check for specific on-screen errors
+      const errorEl = await page.$('.alert-danger, .error-message, div[class*="error"]');
+      if (errorEl) {
+        const errorText = await errorEl.innerText();
+        console.error(`⚠️ Mensaje de error en pantalla: ${errorText}`);
+        throw new Error(`Login Error Visible: ${errorText}`);
+      }
+
+      throw new Error('Login falló - sin error visible, pero seguimos en login.');
     }
 
     console.log('✅ Login exitoso!');
@@ -214,7 +235,8 @@ async function initBrowser(retryCount = 0) {
 
       const adminUrl = page.url();
       if (adminUrl.includes('login') || adminUrl.includes('error')) {
-        throw new Error('Sesión no válida en Admin');
+        await page.screenshot({ path: 'admin_session_failed.png', fullPage: true });
+        throw new Error('Sesión no válida en Admin (Redirigido a Login)');
       }
 
       console.log('✅ Sesión persistente validada en Admin');
@@ -227,6 +249,12 @@ async function initBrowser(retryCount = 0) {
 
   } catch (error) {
     console.error(`❌ Error en initBrowser (intento ${retryCount + 1}/${MAX_RETRIES}):`, error.message);
+
+    // Final Screenshot on Crash
+    if (page && !page.isClosed()) {
+      try { await page.screenshot({ path: `crash_attempt_${retryCount}.png` }); } catch (err) { }
+    }
+
     try { if (browser) await browser.close(); } catch (e) { }
     browser = null;
     page = null;
