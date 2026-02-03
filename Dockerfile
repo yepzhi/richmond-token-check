@@ -10,8 +10,8 @@ COPY package*.json ./
 # Install NPM dependencies (as root, so we can run install-deps)
 RUN npm install
 
-# Install system dependencies for Chromium using Playwright's utility
-RUN npx playwright install-deps chromium
+# Install system dependencies for Firefox using Playwright's utility
+RUN npx playwright install-deps firefox
 
 # Note: The 'node' image already creates a user named 'node' with UID 1000.
 # We will just use that instead of creating a new 'user'.
@@ -22,8 +22,8 @@ RUN chown -R node:node /app
 # Switch to the node user
 USER node
 
-# Install Chromium binary (as the user, so it goes to /home/node/.cache)
-RUN npx playwright install chromium
+# Install Firefox binary (as the user, so it goes to /home/node/.cache)
+RUN npx playwright install firefox
 
 # Copy the rest of the application code
 COPY --chown=node:node . .
