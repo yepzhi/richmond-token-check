@@ -2,11 +2,10 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors'); // Import CORS
 // Use playwright-extra instead of standard playwright
-const { chromium } = require('playwright-extra');
-const stealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-// Apply the stealth plugin
-chromium.use(stealthPlugin());
+const { firefox } = require('playwright-extra');
+// Firefox usually bypasses Chrome-specific WAFs without stealth plugin
+// const stealthPlugin = require('puppeteer-extra-plugin-stealth');
+// firefox.use(stealthPlugin());
 
 const app = express();
 
@@ -150,17 +149,10 @@ async function initBrowser(retryCount = 0) {
     const launchOptions = {
       headless: isProd,
       slowMo: isProd ? 100 : 50,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu', // Critical for HF Spaces often
-        '--disable-blink-features=AutomationControlled',
-        '--window-size=1920,1080'
-      ]
+      args: []
     };
 
-    browser = await chromium.launch(launchOptions);
+    browser = await firefox.launch(launchOptions);
 
     const context = await browser.newContext({
       viewport: { width: 1920, height: 1080 },
