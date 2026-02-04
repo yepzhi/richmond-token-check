@@ -244,6 +244,21 @@ async function initBrowser(retryCount = 0) {
       const title = await page.title();
       console.log(`Title: ${title}`);
 
+      // 🚫 CHECK FOR 500 ERROR (IP BLOCK) - SET COOLDOWN IMMEDIATELY
+      const pageTextLower = pageText.toLowerCase();
+      const titleLower = title.toLowerCase();
+      if (pageTextLower.includes(IP_BLOCK_MESSAGE) || titleLower.includes('500')) {
+        ipBlockedUntil = Date.now() + IP_BLOCK_COOLDOWN_MS;
+        const cooldownHours = IP_BLOCK_COOLDOWN_MS / (60 * 60 * 1000);
+        console.error(`🚫 IP BLOCKED DETECTED (500 Error in page content). Setting ${cooldownHours}-hour cooldown.`);
+        console.error(`⏰ Next retry allowed at: ${new Date(ipBlockedUntil).toLocaleTimeString()}`);
+        isSystemReady = false;
+        try { await browser.close(); } catch (e) { }
+        browser = null;
+        page = null;
+        return; // EXIT IMMEDIATELY - no more retries
+      }
+
       // Check for specific on-screen errors
       const errorEl = await page.$('.alert-danger, .error-message, div[class*="error"]');
       if (errorEl) {
