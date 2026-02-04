@@ -280,7 +280,11 @@ async function initBrowser(retryCount = 0) {
       await new Promise(resolve => setTimeout(resolve, waitTime));
       return initBrowser(retryCount + 1);
     }
-    throw error;
+
+    // DON'T CRASH - just log and keep server running for UI access
+    console.error('❌ Login failed after all retries. Server will stay up for UI access.');
+    console.error('⏰ Retry login manually or wait for IP block to lift.');
+    isSystemReady = false;
   }
 }
 
