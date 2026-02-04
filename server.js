@@ -135,7 +135,7 @@ async function initBrowser(retryCount = 0) {
   lastActivityTime = Date.now();
 
   try {
-    console.log('🌐 Iniciando Chromium (Stealth Mode)...');
+    console.log('🌐 Iniciando Firefox (Vanilla Mode)...');
 
     if (browser) {
       try {
