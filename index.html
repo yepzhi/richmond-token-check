@@ -1,19 +1,510 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url=https://huggingface.co/spaces/yepzhi/richmond-token-check">
-    <script type="text/javascript">
-        window.location.replace("https://huggingface.co/spaces/yepzhi/richmond-token-check");
-    </script>
-    <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Richmond Token Checker | Yepzhi Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Dark Theme - Responsive */
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #238636;
+            --accent-glow: rgba(35, 134, 54, 0.3);
+            --border: #30363d;
+            --warning: #d29922;
+            --error: #f85149;
+            --info: #58a6ff;
+            --success: #3fb950;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* === RESPONSIVE CONTAINER === */
+        .container {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* === HEADER === */
+        header {
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff, #a371f7, #d2a8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* === STATUS CARD (THE BIG VISIBLE ONE) === */
+        .status-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .status-card.ready {
+            border-color: var(--success);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .status-card.warming {
+            border-color: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        .status-card.offline {
+            border-color: var(--error);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .status-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .status-detail {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* === STEPS PROGRESS === */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            gap: 8px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px 4px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .step.done {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .step-icon {
+            font-size: 1.2rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* === SEARCH CARD === */
+        .search-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+            .input-group {
+                flex-direction: row;
+            }
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--info);
+        }
+
+        button {
+            padding: 14px 24px;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* === RESULTS === */
+        #results {
+            margin-top: 16px;
+        }
+
+        .result-box {
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+
+        .result-box.success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .result-box.error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .result-box.info {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+
+        /* === TABLE === */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        /* === FOOTER === */
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        footer a {
+            color: var(--info);
+            text-decoration: none;
+        }
+    </style>
 </head>
 
 <body>
-    <p>Redirecting to <a
-            href="https://huggingface.co/spaces/yepzhi/richmond-token-check">https://huggingface.co/spaces/yepzhi/richmond-token-check</a>...
-    </p>
+    <div class="container">
+        <header>
+            <h1>🎓 Richmond Token Checker</h1>
+            <p class="subtitle">Verify access codes securely</p>
+        </header>
+
+        <!-- Big Status Card -->
+        <div id="statusCard" class="status-card warming">
+            <div class="status-icon">🚀</div>
+            <div class="status-title">Initializing Connection...</div>
+            <div class="status-detail">Connecting to secure backend server</div>
+
+            <div class="steps">
+                <div class="step active" id="step1"><span class="step-icon">🔌</span> Connect</div>
+                <div class="step" id="step2"><span class="step-icon">🔐</span> Login</div>
+                <div class="step" id="step3"><span class="step-icon">✅</span> Ready</div>
+            </div>
+        </div>
+
+        <!-- Search Card -->
+        <div class="search-card">
+            <div class="input-group">
+                <input type="text" id="accessCode" placeholder="Enter Access Code (e.g. 784512...)" autocomplete="off">
+                <button id="checkBtn">Check Code</button>
+            </div>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://yepzhi.com">← Back to Yepzhi.com</a> | Powered by Hugging Face Spaces
+    </footer>
+
+    <script>
+        // ============ CONFIGURATION ============
+        // Relative path because this is hosted on the server itself
+        const API_BASE = '';
+
+        // ============ DOM ELEMENTS ============
+        const statusCard = document.getElementById('statusCard');
+        const statusIcon = statusCard.querySelector('.status-icon');
+        const statusTitle = statusCard.querySelector('.status-title');
+        const statusDetail = statusCard.querySelector('.status-detail');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const checkBtn = document.getElementById('checkBtn');
+        const input = document.getElementById('accessCode');
+        const results = document.getElementById('results');
+
+        let isReady = false;
+        let pollFails = 0;
+
+        // ============ STATUS POLLING ============
+        async function pollStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(8000) });
+                const data = await res.json();
+                pollFails = 0; // Reset fail counter
+
+                if (data.ready) {
+                    // READY STATE
+                    isReady = true;
+                    statusCard.className = 'status-card ready';
+                    statusIcon.textContent = '✅';
+                    statusTitle.textContent = 'System Online & Ready';
+                    statusDetail.textContent = data.queue > 0 ? `${data.queue} request(s) in queue` : 'No queue, instant results!';
+                    step1.className = 'step done';
+                    step2.className = 'step done';
+                    step3.className = 'step done';
+                    checkBtn.disabled = false;
+                } else {
+                    // WARMING STATE
+                    isReady = false;
+                    statusCard.className = 'status-card warming';
+                    statusIcon.textContent = '🔄';
+                    statusTitle.textContent = 'System Warming Up...';
+                    statusDetail.textContent = 'Browser is logging in. Please wait ~30s.';
+                    step1.className = 'step done';
+                    step2.className = 'step active';
+                    step3.className = 'step';
+                    // Keep button enabled so user can queue request
+                    checkBtn.disabled = false;
+                }
+            } catch (e) {
+                pollFails++;
+                if (pollFails >= 3) {
+                    // OFFLINE STATE
+                    isReady = false;
+                    statusCard.className = 'status-card offline';
+                    statusIcon.textContent = '😴';
+                    statusTitle.textContent = 'Server Sleeping';
+                    statusDetail.innerHTML = 'Hugging Face Space is paused.<br><button onclick="wakeUp()" style="margin-top:10px; padding:8px 16px; background:#d29922; border:none; border-radius:6px; color:white; cursor:pointer;">⚡ Wake Up Server</button>';
+                    step1.className = 'step active';
+                    step2.className = 'step';
+                    step3.className = 'step';
+                    checkBtn.disabled = false;
+                }
+            }
+        }
+
+        async function wakeUp() {
+            try {
+                statusDetail.innerHTML = 'Sending Wake-Up Signal... 📡<br><small>Please wait ~60 seconds...</small>';
+                // Use no-cors to force the request through even if CORS headers are missing during boot
+                await fetch(API_BASE, { mode: 'no-cors' });
+                pollFails = 0; // Reset fails to trigger loading state on next poll
+            } catch (e) {
+                console.log('Wake up signal sent (blind)');
+            }
+        }
+
+        // Poll every 4s
+        setInterval(pollStatus, 4000);
+        pollStatus();
+
+        // ============ CHECK CODE ============
+        checkBtn.addEventListener('click', checkCode);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkCode(); });
+
+        async function checkCode() {
+            const code = input.value.trim();
+            if (!code) {
+                results.innerHTML = '<div class="result-box error">⚠️ Please enter an access code.</div>';
+                return;
+            }
+
+            // UI Loading State
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Searching...';
+            results.innerHTML = '<div class="result-box info">🔎 Searching secure database...<br><small>You may be in queue if others are searching.</small></div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/check-access-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessCode: code })
+                });
+
+                const data = await res.json();
+
+                if (data.valid) {
+                    let html = '<div class="result-box success">✅ Access Code Found!</div>';
+
+                    if (data.data.results && data.data.results.length > 0) {
+                        html += '<div class="table-wrapper"><table><thead><tr>';
+                        data.data.headers.forEach(h => html += `<th>${h}</th>`);
+                        html += '</tr></thead><tbody>';
+                        data.data.results.forEach(r => {
+                            html += '<tr>';
+                            data.data.headers.forEach(h => html += `<td>${r[h] || '-'}</td>`);
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                    }
+                    results.innerHTML = html;
+                } else {
+                    results.innerHTML = `<div class="result-box error">❌ ${data.message}</div>`;
+                }
+
+            } catch (e) {
+                results.innerHTML = '<div class="result-box error">⚠️ Connection error. The server may be waking up. Try again in 30 seconds.</div>';
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Code';
+            }
+        }
+
+        // ============ LIVE LOGS ============
+        const logsContainer = document.createElement('div');
+        logsContainer.innerHTML = `
+            <div style="margin-top: 20px; width: 100%; max-width: 640px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); overflow: hidden;">
+                <div id="logsHeader" style="padding: 10px 15px; background: #21262d; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; color: var(--text-dim);">
+                    <span>📡 Live Process Tail</span>
+                    <span id="logToggle">▼</span>
+                </div>
+                <div id="logsBody" style="display: none; padding: 10px; background: #0d1117; font-family: monospace; font-size: 0.75rem; color: #8b949e; height: 200px; overflow-y: auto;">
+                    <div style="color: var(--info);">Connecting to log stream...</div>
+                </div>
+            </div>
+        `;
+        document.querySelector('.container').appendChild(logsContainer);
+
+        const logsHeader = logsContainer.querySelector('#logsHeader');
+        const logsBody = logsContainer.querySelector('#logsBody');
+        const logToggle = logsContainer.querySelector('#logToggle');
+        let isLogsOpen = false;
+        let logInterval = null;
+
+        logsHeader.addEventListener('click', () => {
+            isLogsOpen = !isLogsOpen;
+            logsBody.style.display = isLogsOpen ? 'block' : 'none';
+            logToggle.textContent = isLogsOpen ? '▲' : '▼';
+
+            if (isLogsOpen) {
+                pollLogs();
+                logInterval = setInterval(pollLogs, 2000); // Fast poll when open
+            } else {
+                clearInterval(logInterval);
+            }
+        });
+
+        async function pollLogs() {
+            if (!isLogsOpen) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/logs`);
+                const data = await res.json();
+                if (data.logs && data.logs.length > 0) {
+                    logsBody.innerHTML = data.logs.map(l => `<div>${l}</div>`).join('');
+                    logsBody.scrollTop = logsBody.scrollHeight; // Auto scroll
+                }
+            } catch (e) {
+                logsBody.innerHTML += `<div style="color: var(--error);">Error fetching logs</div>`;
+            }
+        }
+    </script>
 </body>
 
 </html>
