@@ -102,6 +102,11 @@ const ADMIN_URL = 'https://richmondlp.com/admin';
 const USER = 'mramirez@richmondelt.com';
 const PASS = 'Pass2026*';
 
+// IP Block Detection & Cooldown
+const IP_BLOCK_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+const IP_BLOCK_MESSAGE = 'something went wrong';
+let ipBlockedUntil = 0; // Timestamp when block expires
+
 // Detectar entorno
 const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.SPACE_ID;
 console.log(`🔧 Entorno: ${isProd ? 'PRODUCCIÓN (Cloud/HF)' : 'LOCAL'}`);
@@ -128,7 +133,17 @@ async function checkSessionTimeout() {
 
 // 🚀 Inicializa navegador y hace login con retry automático
 async function initBrowser(retryCount = 0) {
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 1; // Only 1 retry to avoid IP blocking
+
+  // Check if in IP block cooldown period
+  const now = Date.now();
+  if (ipBlockedUntil > now) {
+    const remainingMins = Math.ceil((ipBlockedUntil - now) / 60000);
+    console.log(`⏳ IP still in cooldown. ${remainingMins} minutes remaining until retry allowed.`);
+    isSystemReady = false;
+    return;
+  }
+
   if (isSystemReady && page && !page.isClosed()) return; // Already ready
 
   isSystemReady = false; // Reset ready flag on init
@@ -265,6 +280,10 @@ async function initBrowser(retryCount = 0) {
   } catch (error) {
     console.error(`❌ Error en initBrowser (intento ${retryCount + 1}/${MAX_RETRIES}):`, error.message);
 
+    // Check if this is the "something went wrong" 500 error
+    const errorLower = error.message.toLowerCase();
+    const is500Block = errorLower.includes(IP_BLOCK_MESSAGE) || errorLower.includes('500');
+
     // Final Screenshot on Crash
     if (page && !page.isClosed()) {
       try { await page.screenshot({ path: `crash_attempt_${retryCount}.png` }); } catch (err) { }
@@ -274,6 +293,17 @@ async function initBrowser(retryCount = 0) {
     browser = null;
     page = null;
 
+    // If 500 error detected, set 3-hour cooldown - DO NOT retry aggressively
+    if (is500Block) {
+      ipBlockedUntil = Date.now() + IP_BLOCK_COOLDOWN_MS;
+      const cooldownHours = IP_BLOCK_COOLDOWN_MS / (60 * 60 * 1000);
+      console.error(`🚫 IP BLOCKED DETECTED (500 Error). Setting ${cooldownHours}-hour cooldown.`);
+      console.error(`⏰ Next retry allowed at: ${new Date(ipBlockedUntil).toLocaleTimeString()}`);
+      isSystemReady = false;
+      return; // DO NOT retry - wait for cooldown
+    }
+
+    // For other errors, allow limited retry
     if (retryCount < MAX_RETRIES) {
       const waitTime = (retryCount + 1) * 5000;
       console.log(`🔄 Reintentando en ${waitTime / 1000} segundos...`);
