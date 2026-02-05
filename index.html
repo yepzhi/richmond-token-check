@@ -222,6 +222,9 @@
         /* === RESULTS === */
         #results {
             margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .result-box {
@@ -248,28 +251,50 @@
             color: var(--info);
         }
 
-        /* === TABLE === */
-        .table-wrapper {
-            overflow-x: auto;
-            margin-top: 16px;
+        /* === VERTICAL CARD RESULTS === */
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.2s;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
+        .result-card:hover {
+            border-color: var(--info);
+            background: rgba(88, 166, 255, 0.05);
         }
 
-        th,
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-            text-align: left;
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
         }
 
-        th {
+        .result-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .result-label {
+            font-size: 0.8rem;
             color: var(--text-dim);
+            text-transform: uppercase;
             font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 0.95rem;
+            color: var(--text);
+            font-weight: 500;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
         }
 
         /* === FOOTER === */
@@ -294,6 +319,17 @@
             <h1>🎓 Richmond Token Checker</h1>
             <p class="subtitle">Verify access codes securely</p>
         </header>
+
+        <!-- Status Notice -->
+        <div
+            style="background: rgba(210, 153, 34, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: 12px; font-size: 0.85rem; color: var(--warning); line-height: 1.4;">
+            <strong>Nota:</strong> Si este sitio dice <em>Server Sleeping</em> favor de presionar <strong>Wake
+                Server</strong>.<br>
+            Si el sitio dice <em>Waking Up</em> favor de esperar 1 minuto hasta que diga <em>Online and Ready!</em>
+            entonces ya podrá revisar tokens.<br><br>
+            Si tarda más de un minuto y no se pone ready favor de visualizar los <strong>LOGS</strong>. Si hay un error,
+            reintente revisar su token en un aproximado de 3 horas o consulte vía WhatsApp con su asesor Richmond.
+        </div>
 
         <!-- Big Status Card -->
         <div id="statusCard" class="status-card warming">
@@ -434,15 +470,20 @@
                     let html = '<div class="result-box success">✅ Access Code Found!</div>';
 
                     if (data.data.results && data.data.results.length > 0) {
-                        html += '<div class="table-wrapper"><table><thead><tr>';
-                        data.data.headers.forEach(h => html += `<th>${h}</th>`);
-                        html += '</tr></thead><tbody>';
+                        // VERTICAL LAYOUT GENERATION
                         data.data.results.forEach(r => {
-                            html += '<tr>';
-                            data.data.headers.forEach(h => html += `<td>${r[h] || '-'}</td>`);
-                            html += '</tr>';
+                            html += '<div class="result-card">';
+                            data.data.headers.forEach(h => {
+                                const val = r[h] || '-';
+                                html += `
+                                    <div class="result-row">
+                                        <div class="result-label">${h}</div>
+                                        <div class="result-value">${val}</div>
+                                    </div>
+                                `;
+                            });
+                            html += '</div>';
                         });
-                        html += '</tbody></table></div>';
                     }
                     results.innerHTML = html;
                 } else {

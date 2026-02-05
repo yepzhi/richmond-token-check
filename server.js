@@ -517,9 +517,46 @@ async function processAccessCodeCheck(accessCode) {
   lastActivityTime = Date.now();
 
   if (!resultInfo.found || resultInfo.rows.length === 0) {
+    // 🔍 INTENTAR LEER MENSAJE DE ERROR ESPECÍFICO
+    console.log('⚠️ No se encontraron resultados en tabla. Buscando mensaje de error en pantalla...');
+
+    // Selectores comunes para mensajes flash/alert en frameworks (Rails/Bootstrap/etc)
+    const errorSelectors = [
+      '.alert',
+      '.flash-message',
+      '.notification',
+      '#flash_notice',
+      '#flash_alert',
+      '.alert-danger',
+      '.alert-warning'
+    ];
+
+    let scrapedMessage = null;
+
+    for (const selector of errorSelectors) {
+      try {
+        const el = await page.$(selector);
+        if (el && await el.isVisible()) {
+          const text = (await el.innerText()).trim();
+          if (text) {
+            scrapedMessage = text;
+            break;
+          }
+        }
+      } catch (e) { }
+    }
+
+    // Si no encontramos selectores estandar, intentamos buscar texto visible cerca del top
+    if (!scrapedMessage) {
+      // A veces es solo texto plano en un div feo
+      // ... implementar si es necesario
+    }
+
+    console.log(`⚠️ Mensaje scrapeado: ${scrapedMessage || 'Ninguno'}`);
+
     return {
       valid: false,
-      message: 'No se encontraron resultados (Código inválido o no usado)',
+      message: scrapedMessage || 'No se encontraron resultados (El token no existe o no ha sido usado).',
       data: { accessCode }
     };
   }
