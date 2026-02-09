@@ -355,15 +355,31 @@ function smartMaskCell(header, value) {
 const findButtonInScope = async (scope, scopeName) => {
   console.log(`🔍 Buscando en ${scopeName}...`);
 
-  // 1. Check strict ID/Selector
+  // 1. Check strict ID/Selector - Richmond specific
   let btn = await scope.$('#check-token-button');
-  if (btn) return { btn, method: 'ID' };
+  if (btn && await btn.isVisible()) return { btn, method: 'ID #check-token-button' };
+
+  btn = await scope.$('button#check_token');
+  if (btn && await btn.isVisible()) return { btn, method: 'ID button#check_token' };
 
   btn = await scope.$('a[href*="#check-token"]');
-  if (btn) return { btn, method: 'href' };
+  if (btn && await btn.isVisible()) return { btn, method: 'href #check-token' };
 
-  // 2. Check all button/a tag texts
-  const elements = await scope.$$('button, a, input[type="submit"], div[role="button"]');
+  // 2. Check form submit buttons near token input
+  btn = await scope.$('#manage-access-codes button[type="submit"]');
+  if (btn && await btn.isVisible()) return { btn, method: 'form submit in #manage-access-codes' };
+
+  btn = await scope.$('.token-section button');
+  if (btn && await btn.isVisible()) return { btn, method: '.token-section button' };
+
+  // 3. Check all button/a tag texts with expanded patterns
+  const elements = await scope.$$('button, a, input[type="submit"], input[type="button"], div[role="button"], span[role="button"]');
+
+  const textPatterns = [
+    'check', 'verify', 'validar', 'buscar', 'search',
+    'look up', 'lookup', 'go', 'submit', 'consultar',
+    'token', 'código', 'codigo', 'access'
+  ];
 
   for (const el of elements) {
     try {
@@ -371,11 +387,31 @@ const findButtonInScope = async (scope, scopeName) => {
       if (!isVisible) continue;
 
       const text = (await el.innerText()).trim().toLowerCase();
-      if (text.includes('check') || text.includes('verify') || text.includes('validar') || text.includes('access')) {
-        return { btn: el, method: `textMatch: "${text}"` };
+      const ariaLabel = await el.getAttribute('aria-label') || '';
+      const title = await el.getAttribute('title') || '';
+      const combinedText = `${text} ${ariaLabel.toLowerCase()} ${title.toLowerCase()}`;
+
+      for (const pattern of textPatterns) {
+        if (combinedText.includes(pattern)) {
+          console.log(`   ✅ Found button via text match: "${text}" (pattern: ${pattern})`);
+          return { btn: el, method: `textMatch: "${text}" (pattern: ${pattern})` };
+        }
       }
     } catch (e) { }
   }
+
+  // 4. Last resort: find any button adjacent to an input field in the access codes section
+  try {
+    const form = await scope.$('#manage-access-codes form, .access-code-form, form:has(input[id*="token"])');
+    if (form) {
+      const formBtn = await form.$('button, input[type="submit"]');
+      if (formBtn && await formBtn.isVisible()) {
+        console.log('   ✅ Found button in form context');
+        return { btn: formBtn, method: 'form context button' };
+      }
+    }
+  } catch (e) { }
+
   return null;
 };
 
@@ -485,11 +521,29 @@ async function processAccessCodeCheck(accessCode) {
 
   if (searchResult) {
     button = searchResult.btn;
+    console.log(`✅ Botón encontrado via: ${searchResult.method}`);
+    await button.click({ timeout: 15000 });
   } else {
-    throw new Error('Botón NO encontrado.');
+    // NO BUTTON FOUND - Try Enter key as fallback
+    console.log('⚠️ Botón NO encontrado. Intentando Enter key como fallback...');
+
+    // Take screenshot for debugging
+    try {
+      await page.screenshot({ path: 'button_not_found_debug.png', fullPage: true });
+      console.log('📸 Screenshot guardado: button_not_found_debug.png');
+    } catch (e) { console.log('   Screenshot failed:', e.message); }
+
+    // Focus on input and press Enter
+    try {
+      await input.focus();
+      await page.keyboard.press('Enter');
+      console.log('📍 Enter key enviado como fallback');
+    } catch (e) {
+      console.log('❌ Enter key fallback también falló:', e.message);
+      throw new Error('Botón NO encontrado y Enter fallback falló.');
+    }
   }
 
-  await button.click({ timeout: 15000 });
   console.log('📍 Esperando resultados...');
   await page.waitForTimeout(3000);
 
